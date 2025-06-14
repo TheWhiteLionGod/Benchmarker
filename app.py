@@ -13,7 +13,8 @@ app.config['SECRET_KEY'] = SECRET_KEY
 bootstrap = Bootstrap5(app)
 
 class CodeForm(FlaskForm):
-    code = TextAreaField("Program", validators=[DataRequired()])
+    program1 = TextAreaField("Program 1", validators=[DataRequired()])
+    program2 = TextAreaField("Program 2", validators=[DataRequired()])
     submit = SubmitField("Evaluate")
 
 
@@ -40,13 +41,14 @@ def homepage():
 @app.route("/benchmark", methods=['GET', 'POST'])
 def benchmark():
     global result
-    form = CodeForm()
-    if form.validate_on_submit():
-        code = form.code.data
-        result = bm.benchmark(code, code, params, 10)
+    program = CodeForm()
+    if program.validate_on_submit():
+        program1 = program.program1.data
+        program2 = program.program2.data
+        result = bm.benchmark(program1, program2, params, 10)
         return redirect('chart')
 
-    return render_template("benchmark.html", page="benchmark", form=form)
+    return render_template("benchmark.html", page="benchmark", form=program)
 
 @app.route("/chart")
 def chart():
