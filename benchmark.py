@@ -4,7 +4,7 @@ import math
 def benchmark(func1: str, func2: str, params: list, iterations: int) -> dict:
     func1Times = []
     func2Times = []
-
+    
     func1Compiled = compile(func1, "<string>", "exec")
     func2Compiled = compile(func2, "<string>", "exec")
 
@@ -22,39 +22,41 @@ def benchmark(func1: str, func2: str, params: list, iterations: int) -> dict:
     func1Avg = sum(func1Times) / len(func1Times)
     func2Avg = sum(func2Times) / len(func2Times)
     return {
-        "Func1": round(-math.log10(func1Avg) * 10, 3),
-        "Func2": round(-math.log10(func2Avg) * 10, 3)
+        "Func1Times": func1Times,
+        "Func2Times": func2Times,
+        "Func1Average": round(-math.log10(func1Avg) * 10, 3),
+        "Func2Average": round(-math.log10(func2Avg) * 10, 3)
     }
 
 if __name__ == '__main__':
     func1 = """
-    def binary_search(arr, target):
-        low = 0
-        high = len(arr) - 1
-        while low <= high:
-            mid = (low + high) // 2
-            if arr[mid] == target:
-                return mid
-            elif arr[mid] < target:
-                low = mid + 1
-            else:
-                high = mid - 1
-        return -1
+def binary_search(arr, target):
+    low = 0
+    high = len(arr) - 1
+    while low <= high:
+        mid = (low + high) // 2
+        if arr[mid] == target:
+            return mid
+        elif arr[mid] < target:
+            low = mid + 1
+        else:
+            high = mid - 1
+    return -1
 
-    arr, target = params
-    result = binary_search(arr, target)
+arr, target = params
+result = binary_search(arr, target)
     """
 
     func2 = """
-    def normal_search(arr, target):
-        for v in arr:
-            if v == target:
-                return arr.index(v)
-        
-        return -1
+def normal_search(arr, target):
+    for v in arr:
+        if v == target:
+            return arr.index(v)
+    
+    return -1
 
-    arr, target = params
-    result = normal_search(arr, target)
+arr, target = params
+result = normal_search(arr, target)
     """
 
     arr = list(range(1, 1000000))
