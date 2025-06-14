@@ -28,7 +28,7 @@ params = [
     (arr, 1),
     (arr, 1000000),
     (arr, 10001),
-    (arr, -1) 
+    (arr, -1)
 ]
 
 result = {}
