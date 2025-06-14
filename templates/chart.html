@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block head %}
+{{super() }}
+{% endblock %}
+
+<body>
+    {% block header %}
+    {{ super() }}
+    {% endblock %}
+
+
+    {% block content %}
+        <canvas id="lineChart" height="100" class="rounded-3 px-5"></canvas>
+        <script>
+            var ctx = document.getElementById("lineChart").getContext("2d");
+            var lineChart = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: ["Hello", "hi"],
+                    datasets: [
+                        {
+                            label: "Data Points",
+                            data: [1, 2],
+                            fill: false,
+                            borderColor: "#FFFFFF",
+                            lineTension: 0.1
+                        }
+                    ]
+                },
+                option: {
+                    responsive: false
+                }
+            });
+        </script>
+    {% endblock %}
+
+    {% block footer %}
+    {{ super() }}
+    {% endblock %}
+</body>
