@@ -30,7 +30,7 @@ def benchmark():
 
 @app.route("/chart")
 def chart():
-    return render_template("chart.html")
+    return render_template("chart.html", labels=["Hi", "Hello", "Bye"], data=[1, 2, 3])
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

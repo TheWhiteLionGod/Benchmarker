@@ -17,11 +17,11 @@
             var lineChart = new Chart(ctx, {
                 type: "line",
                 data: {
-                    labels: ["Hello", "hi"],
+                    labels: {{ labels | safe }},
                     datasets: [
                         {
                             label: "Data Points",
-                            data: [1, 2],
+                            data: {{ data | safe }},
                             fill: false,
                             borderColor: "#FFFFFF",
                             lineTension: 0.1
