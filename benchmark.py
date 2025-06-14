@@ -24,8 +24,8 @@ def benchmark(func1: str, func2: str, params: list, iterations: int) -> dict:
     return {
         "Func1Times": func1Times,
         "Func2Times": func2Times,
-        "Func1Average": round(-math.log10(func1Avg) * 10, 3),
-        "Func2Average": round(-math.log10(func2Avg) * 10, 3)
+        "Func1Score": round(-math.log10(func1Avg) * 10, 3),
+        "Func2Score": round(-math.log10(func2Avg) * 10, 3)
     }
 
 if __name__ == '__main__':
