@@ -11,7 +11,22 @@
 
 
     {% block content %}
-    <h1>Hello</h1>
+        <main class="mb-4">
+            <div class="container">
+            <div class="row">
+                {% with messages = get_flashed_messages() %}
+                    {% for message in messages %}
+                    <p style="color: red; text-align: center;">{{message}}</p>
+                    {% endfor %}
+                {% endwith %}         
+            </div>
+            <form method="post">
+                <div class="py-2 row"></div>{{ form.csrf_token() }}
+                <div class="py-2 row"></div>{{ render_field(form.code) }}
+                <div class="py-2 row"></div>{{ render_field(form.submit) }}
+            </form>
+            </div>
+        </main>
     {% endblock %}
 
     {% block footer %}
