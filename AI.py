@@ -3,35 +3,31 @@ import ollama
 import re
 import json
 
-os.environ["OLLAMA_HOST"] = "https://4aa8-68-194-75-55.ngrok-free.app"
+# Set custom Ollama API location
+os.environ["OLLAMA_HOST"] = "http://localhost:11434"
 
 def generate_test_code(code_input: str):
     client = ollama.Client()
 
     prompt = f"""
-You are a Python code evaluator. Given the following function:
+ONLY return two lines:
 
-{code_input}
+1. A single-line variable assignment like:
+params = [([1, 2, 3], 2), ([4, 5], 4)]
 
-Your job is to:
-1. Create a variable 'params' as a list of test cases, where each test case is a tuple of arguments, like:
-   params = [(arg1, arg2), (arg1, arg2)]
+2. A single-line function call like:
+result = binary_search(params[i][0], params[i][1])
 
-2. Output a line that calls the function like:
-   result = <function_name>(params[i][0], params[i][1], ...)
-
-Rules:
-- Do NOT explain anything.
-- Do NOT use markdown or code fences.
-- Only return raw Python code.
-- Use the variable name 'result' for the function call.
-- Use 'params[i][0]', 'params[i][1]', etc., so it can be run in a loop.
+⚠️ No explanations, no comments, no extra lines.
+⚠️ Do NOT add code fences or markdown (no ```).
+⚠️ Do NOT break lines inside the params list.
+⚠️ Use this exact format — nothing more.
 """
 
     try:
         response = client.generate(
             model="deepseek-r1:14b",
-            prompt=prompt,
+            prompt=prompt + "\n\n" + code_input,
             stream=False
         )
         raw_output = response.get("response", "")
@@ -41,45 +37,27 @@ Rules:
         return {"error": str(e)}
 
 def extract_test_info(response_text: str):
-    # Remove backticks, <think>, and clean whitespace
-    cleaned = re.sub(r"`{3}(?:python)?|<think>|</think>", "", response_text, flags=re.IGNORECASE).strip()
+    # Remove anything that is NOT one of the two expected lines
+    matches = re.findall(r"params\s*=\s*\[.*?\]\s*|result\s*=\s*.*", response_text, re.DOTALL)
 
-    # Extract params assignment: find the 'params =' line and grab everything after it up to a blank line or end
-    params_match = re.search(r"(params\s*=\s*\[.*?\])", cleaned, re.DOTALL)
-    params_str = params_match.group(1).strip() if params_match else ""
+    params_line = ""
+    result_line = ""
 
-    # Now convert params list-of-lists style to list-of-tuples style string:
-    # Remove newlines and excessive whitespace inside params_str
-    params_str = re.sub(r"\s+", " ", params_str)
-
-    # Replace inner [ ] with ( ) for tuples, but only one level inside the main list
-    # Example: params = [ [1,2], [3,4] ] --> params = [(1,2), (3,4)]
-    def brackets_to_tuples(match):
-        inner = match.group(1)
-        return f"({inner})"
-
-    # Replace all occurrences of square brackets containing numbers inside the main list
-    params_str = re.sub(r"\[\s*([^\[\]]+?)\s*\]", brackets_to_tuples, params_str)
-
-    # Also collapse multiple spaces
-    params_str = re.sub(r"\s+", " ", params_str)
-
-    # Extract result line (the function call)
-    result_line = None
-    for line in cleaned.splitlines():
-        if line.strip().startswith("result ="):
-            result_line = line.strip()
-            break
+    for match in matches:
+        if match.strip().startswith("params ="):
+            params_line = re.sub(r"\s+", " ", match.strip())
+        elif match.strip().startswith("result ="):
+            result_line = re.sub(r"\s+", " ", match.strip())
 
     return {
-        "params_code": params_str,
-        "result_line": result_line or "",
-        "full_code": cleaned
+        "params_code": params_line,
+        "result_line": result_line,
+        "full_code": response_text.strip()
     }
 
-# ================
-# TEST INPUT
-# ================
+# =======================
+# Test Example
+# =======================
 test_code = """
 def binary_search(arr, target):
     low = 0
@@ -95,6 +73,6 @@ def binary_search(arr, target):
     return -1
 """
 
+# Run it
 output = generate_test_code(test_code)
-
 print(json.dumps(output, indent=2))
