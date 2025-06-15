@@ -1,22 +1,27 @@
 import time
 import math
+import ast
 
-def benchmark(func1: str, func2: str, params: list, iterations: int) -> dict:
+def benchmark(func1: str, func2: str, params_code: str, iterations: int) -> dict:
     func1Times = []
     func2Times = []
-    
+
     func1Compiled = compile(func1, "<string>", "exec")
     func2Compiled = compile(func2, "<string>", "exec")
 
+    local_vars = {}
+    exec(params_code, {}, local_vars)
+    params = local_vars["params"]
+
     for i in range(iterations):
-        local_vars = {"params": params[i]}
-        
+        local_scope = {"params": params[i]}
+
         start = time.perf_counter()
-        exec(func1Compiled, local_vars)
+        exec(func1Compiled, local_scope)
         func1Times.append(time.perf_counter() - start)
 
         start = time.perf_counter()
-        exec(func2Compiled, local_vars)
+        exec(func2Compiled, local_scope)
         func2Times.append(time.perf_counter() - start)
 
     func1Avg = sum(func1Times) / len(func1Times)
@@ -27,6 +32,7 @@ def benchmark(func1: str, func2: str, params: list, iterations: int) -> dict:
         "Func1Average": round(-math.log10(func1Avg) * 10, 3),
         "Func2Average": round(-math.log10(func2Avg) * 10, 3)
     }
+
 
 if __name__ == '__main__':
     func1 = """
@@ -59,7 +65,7 @@ arr, target = params
 result = normal_search(arr, target)
     """
 
-    arr = list(range(1, 1000000))
+    arr = list(range(1, 100000000))
 
     params = [
         (arr, 500000),
