@@ -1,18 +1,19 @@
-from flask import Flask, render_template, redirect, jsonify, request
+# Imports
+from flask import Flask, render_template, redirect, jsonify
 from flask_bootstrap import Bootstrap5
 from flask_wtf import FlaskForm
 from wtforms import SubmitField, TextAreaField
 from wtforms.validators import DataRequired
+from markupsafe import Markup
+
+import markdown2
 import threading
-import time
 import os
 import requests
 import benchmark as bm
-import markdown2
-from markupsafe import Markup
 import re
 
-
+# Flask App Config
 app = Flask(__name__)
 SECRET_KEY = os.urandom(32)
 app.config['SECRET_KEY'] = SECRET_KEY
@@ -21,16 +22,18 @@ bootstrap = Bootstrap5(app)
 # Set up Ollama host
 os.environ["OLLAMA_HOST"] = "https://1e77-68-194-75-55.ngrok-free.app"
 
+# Code Form
 class CodeForm(FlaskForm):
     program1 = TextAreaField("Function 1", validators=[DataRequired()])
     program2 = TextAreaField("Function 2", validators=[DataRequired()])
     params = TextAreaField('Enter Parameters for your Functions', validators=[DataRequired()])
     submit = SubmitField("Evaluate")
 
+# Global Variable and Status Management
 result = {"Func1Times": [], "Func2Times": [], "Func1Score": 0, "Func2Score": 0}
 ai_feedback_status = {"status": "pending", "progress": 0}
 
-
+# Stripping HTML of Whitespace
 def minify_html(html_str):
     # Remove newlines and excessive spaces between tags
     html_str = re.sub(r'>\s+<', '><', html_str)
@@ -38,8 +41,7 @@ def minify_html(html_str):
     html_str = html_str.strip()
     return html_str
 
-
-
+# Getting AI Feedback of Function Code
 def get_ai_feedback(func_code, func_name, raw_times, score, ollama_host=None):
     """
     Get AI feedback on function performance using CodeGemma
@@ -105,6 +107,8 @@ Keep the feedback concise and actionable.
     except requests.RequestException as e:
         return f"Error connecting to Ollama: {str(e)}"
 
+
+# Comparative Feedback
 def get_comparative_feedback(func1_code, func2_code, func1_times, func2_times, func1_score, func2_score, ollama_host=None):
     """
     Get comparative AI feedback for two functions
@@ -170,6 +174,7 @@ Keep the analysis concise and practical.
     except Exception as e:
         return f"Error getting comparative feedback: {str(e)}"
 
+# Generating Ai Feedback Asyncronously so Page Loads Quicker without Feedback
 def generate_ai_feedback_async():
     """
     Generate AI feedback in background thread
@@ -212,13 +217,6 @@ def generate_ai_feedback_async():
         
         print("AI feedback generation complete!")
 
-
-        
-
-        
-        
-        
-
     except Exception as e:
         ai_feedback_status["status"] = "error"
         ai_feedback_status["error"] = str(e)
@@ -226,10 +224,12 @@ def generate_ai_feedback_async():
         result["AI_Feedback2"] = f"Error generating feedback: {str(e)}"
         result["Comparative_Feedback"] = f"Error generating feedback: {str(e)}"
 
+# Homepage Route
 @app.route("/")
 def homepage():
     return render_template("index.html", page="home")
 
+# Benchmarking Route
 @app.route("/benchmark", methods=['GET', 'POST'])
 def benchmark():
     global result, ai_feedback_status
@@ -279,6 +279,7 @@ def benchmark():
         return redirect('chart')
     return render_template("benchmark.html", page="benchmark", form=program)
 
+# Chart Route
 @app.route("/chart")
 def chart():
     global result
@@ -304,9 +305,6 @@ def chart():
     ai_feedback1_html = Markup(markdown2.markdown(result.get("AI_Feedback1", "AI feedback not available")))
     ai_feedback2_html = Markup(markdown2.markdown(result.get("AI_Feedback2", "AI feedback not available")))
     comparative_feedback_html = Markup(markdown2.markdown(result.get("Comparative_Feedback", "Comparative feedback not available")))
-
-
-    print(ai_feedback1_html)
     
     return render_template("chart.html",
                         labels=[f"Test {i}" for i in range(1, len(result["Func1Times"])+1)],
@@ -322,6 +320,7 @@ def chart():
                         program2_code=result.get("Program2Code", "")
                         )
 
+# Api Routes
 @app.route("/api/feedback")
 def api_feedback():
     """API endpoint to get current AI feedback status and results"""
@@ -351,4 +350,4 @@ def refresh_feedback():
     return jsonify({"message": "AI feedback refresh started"})
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=False, port=5000)

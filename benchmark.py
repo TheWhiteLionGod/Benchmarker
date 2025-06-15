@@ -1,6 +1,4 @@
 import time
-import math
-import ast
 import numpy as np
 
 def benchmark(func1: str, func2: str, params_code: str) -> dict:
