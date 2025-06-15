@@ -5,6 +5,7 @@ from wtforms import StringField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired
 
 import os
+import math
 import benchmark as bm
 
 app = Flask(__name__)
@@ -53,7 +54,14 @@ def benchmark():
 @app.route("/chart")
 def chart():
     global result
-    return render_template("chart.html", labels=[i for i in result], data=[result[i] for i in result])
+    return render_template("chart.html", 
+                           labels=[f"Attempt {i}" for i in range(1, len(result["Func1Times"])+1)], 
+                           program1=result["Func1Times"], program2=result["Func2Times"], 
+                           score1=[round(-math.log10(i) * 10, 3) for i in result["Func1Times"]], 
+                           score2=[round(-math.log10(i) * 10, 3) for i in result["Func2Times"]],
+                           avg1=[result["Func1Average"] for i in result["Func1Times"]],
+                           avg2=[result["Func2Average"] for i in result["Func2Times"]]
+                           )
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

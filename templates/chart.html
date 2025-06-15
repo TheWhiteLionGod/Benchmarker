@@ -15,21 +15,68 @@
         <script>
             var ctx = document.getElementById("lineChart").getContext("2d");
             var lineChart = new Chart(ctx, {
-                type: "bar",
+                type: "line",
                 data: {
                     labels: {{ labels | safe }},
                     datasets: [
                         {
-                            label: "Data Points",
-                            data: {{ data | safe }},
-                            fill: false,
-                            borderColor: "#FFFFFF",
-                            lineTension: 0.1
+                            label: "Time for Program 1",
+                            data: {{ program1 | safe }},
+                            borderColor: "#FF0000",
+                            yAxisID: 'left'
+                        },
+                        {
+                            label: "Time for Program 2",
+                            data: {{ program2 | safe }},
+                            borderColor: "#ff8a33",
+                            yAxisID: 'left'
+                        },
+                        {
+                            label: "Score for Program 1",
+                            data: {{ score1 | safe }},
+                            borderColor: "#00FF00",
+                            yAxisID: 'right'
+                        },
+                        {
+                            label: "Score for Program 2",
+                            data: {{ score2 | safe }},
+                            borderColor: "#33ff96",
+                            yAxisID: 'right'
+                        },
+                        {
+                            label: "Average Score for Program 1",
+                            data: {{ avg1 | safe }},
+                            borderColor: "#0000FF",
+                            yAxisID: 'right'
+                        },
+                        {
+                            label: "Average Score for Program 2",
+                            data: {{ avg2 | safe }},
+                            borderColor: "#336eff",
+                            yAxisID: 'right'
                         }
                     ]
                 },
-                option: {
-                    responsive: false
+                options: {
+                    responsive: true,
+                    scales: {
+                        left: {
+                            type: 'linear',
+                            position: 'left',
+                            beginAtZero: true,
+                            reverse: true,
+                            label: "Time in Seconds"
+                        },
+                        right: {
+                            type: 'linear',
+                            position: 'right',
+                            beginAtZero: true,
+                            label: "Calculated Score",
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    }
                 }
             });
         </script>
