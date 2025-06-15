@@ -20,8 +20,7 @@ class CodeForm(FlaskForm):
     submit = SubmitField("Evaluate")
 
 
-
-result = {}
+result = {"Func1Times": [], "Func2Times": [], "Func1Average": 0, "Func2Average": 0} 
 
 @app.route("/")
 def homepage():
@@ -35,7 +34,22 @@ def benchmark():
         program1 = program.program1.data
         program2 = program.program2.data
         params = program.params.data
-        result = bm.benchmark(program1, program2, params, 10)
+        iterations = 0
+
+        # Updating Parameters
+        if params == "":
+            iterations = 10
+            params = """
+params = [i for i in range(10)]
+"""
+        else:
+            iterations = len(eval(params))
+            params = f"""
+params = {params}
+"""
+
+        # Benchmarking Results
+        result = bm.benchmark(program1, program2, params, iterations)
         return redirect('chart')
 
     return render_template("benchmark.html", page="benchmark", form=program)
@@ -44,12 +58,10 @@ def benchmark():
 def chart():
     global result
     return render_template("chart.html", 
+                           page="chart",
                            labels=[f"Param Set {i}" for i in range(1, len(result["Func1Times"])+1)], 
-                           program1=result["Func1Times"], program2=result["Func2Times"], 
-                           score1=[round(-math.log10(i) * 10, 3) for i in result["Func1Times"]], 
-                           score2=[round(-math.log10(i) * 10, 3) for i in result["Func2Times"]],
-                           avg1=result["Func1Average"],
-                           avg2=result["Func2Average"]
+                           program1=result["Func1Times"], program2=result["Func2Times"],
+                           avg1=result["Func1Average"], avg2=result["Func2Average"]
                            )
 
 if __name__ == '__main__':
