@@ -1,6 +1,7 @@
 import time
 import math
 import ast
+import numpy as np
 
 def benchmark(func1: str, func2: str, params_code: str) -> dict:
     func1Times = []
@@ -38,7 +39,6 @@ def benchmark(func1: str, func2: str, params_code: str) -> dict:
     
     # Try to import common libraries that users might need
     try:
-        import numpy as np
         global_env['np'] = np
         global_env['numpy'] = np
         global_env['array'] = np.array
@@ -131,7 +131,7 @@ arr, target = params
 result = normal_search(arr, target)
     """
 
-    arr = list(range(1, 100000000))
+    arr = list(range(1, 100_000_000))
 
     params = [
         (arr, 500000),
