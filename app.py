@@ -248,6 +248,25 @@ def benchmark():
 @app.route("/chart")
 def chart():
     global result
+    if result.get("Func1Times") is None:
+        return redirect('benchmark')
+    elif result.get("Func2Times") is None:
+        return redirect('benchmark')
+    elif result.get("Func1Score") is None:
+        return redirect('benchmark')
+    elif result.get("Func2Score") is None:
+        return redirect('benchmark')
+    elif result.get("AI_Feedback1") is None:
+        return redirect('benchmark')
+    elif result.get("AI_Feedback2") is None:
+        return redirect('benchmark')
+    elif result.get("Comparative_Feedback") is None:
+        return redirect('benchmark')
+    elif result.get("Program1Code") is None:
+        return redirect('benchmark')
+    elif result.get("Program2Code") is None:
+        return redirect('benchmark')
+    
     return render_template("chart.html",
                            labels=[f"Test {i}" for i in range(1, len(result["Func1Times"])+1)],
                            page="chart",
@@ -291,4 +310,4 @@ def refresh_feedback():
     return jsonify({"message": "AI feedback refresh started"})
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=False, port=5000)
