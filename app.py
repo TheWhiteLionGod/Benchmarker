@@ -14,12 +14,12 @@ app.config['SECRET_KEY'] = SECRET_KEY
 bootstrap = Bootstrap5(app)
 
 # Set up Ollama host
-os.environ["OLLAMA_HOST"] = "https://4aa8-68-194-75-55.ngrok-free.app/"
+os.environ["OLLAMA_HOST"] = "https://1e77-68-194-75-55.ngrok-free.app"
 
 class CodeForm(FlaskForm):
     program1 = TextAreaField("Function 1", validators=[DataRequired()])
     program2 = TextAreaField("Function 2", validators=[DataRequired()])
-    params = TextAreaField('Params')
+    params = TextAreaField('Enter Parameters for your Functions(Optional)')
     submit = SubmitField("Evaluate")
 
 
