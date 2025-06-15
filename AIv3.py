@@ -3,7 +3,7 @@ import requests
 import re
 from typing import Dict, Any
 
-os.environ["OLLAMA_HOST"] = "http://localhost:11434"
+os.environ["OLLAMA_HOST"] = "https://4aa8-68-194-75-55.ngrok-free.app/"
 
 def generate_dual_function_benchmark(func1_code: str, func2_code: str) -> Dict[str, Any]:
     """
