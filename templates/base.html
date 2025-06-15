@@ -29,6 +29,12 @@
                     <li class="nav-item"><a href="{{url_for('homepage')}}" class="nav-link">Features</a></li> 
                     <li class="nav-item"><a href="{{url_for('benchmark')}}" class="nav-link active">Benchmarking</a></li>
                 {% endif %}
+
+                {% if page == "chart"%}
+                    <li class="nav-item"><a href="{{url_for('homepage')}}" class="nav-link" aria-current="page">Home</a></li> 
+                    <li class="nav-item"><a href="{{url_for('homepage')}}" class="nav-link">Features</a></li> 
+                    <li class="nav-item"><a href="{{url_for('benchmark')}}" class="nav-link">Benchmarking</a></li>
+                {% endif %}
             </ul> 
         </header> 
     </div>

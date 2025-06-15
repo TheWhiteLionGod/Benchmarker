@@ -1,14 +1,12 @@
-# app.py
 from flask import Flask, render_template, redirect, jsonify
 from flask_bootstrap import Bootstrap5
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired
+
 import os
 import math
 import requests
-import json
-import time
 import benchmark as bm
 
 app = Flask(__name__)
@@ -25,7 +23,8 @@ class CodeForm(FlaskForm):
     params = TextAreaField('Params')
     submit = SubmitField("Evaluate")
 
-result = {}
+
+result = {"Func1Times": [], "Func2Times": [], "Func1Average": 0, "Func2Average": 0} 
 
 def get_ai_feedback(func_code, func_name, execution_times, ollama_host="http://localhost:11434"):
     """
@@ -151,9 +150,24 @@ def benchmark():
         program1 = program.program1.data
         program2 = program.program2.data
         params = program.params.data
+        iterations = 0
+
+        # Updating Parameters
+        if params == "":
+            iterations = 10
+            params = """
+params = [i for i in range(10)]
+"""
+        else:
+            iterations = len(eval(params))
+            params = f"""
+params = {params}
+"""
+
+        # Benchmarking Results
         
         # Run benchmark
-        result = bm.benchmark(program1, program2, params, 10)
+        result = bm.benchmark(program1, program2, params, iterations)
         
         # Get AI feedback for both functions
         print("Getting AI feedback...")
@@ -175,10 +189,9 @@ def chart():
     global result
     return render_template("chart.html",
                            labels=[f"Param Set {i}" for i in range(1, len(result["Func1Times"])+1)],
+                           page="chart",
                            program1=result["Func1Times"], 
                            program2=result["Func2Times"],
-                           score1=[round(-math.log10(i) * 10, 3) for i in result["Func1Times"]],
-                           score2=[round(-math.log10(i) * 10, 3) for i in result["Func2Times"]],
                            avg1=result["Func1Average"],
                            avg2=result["Func2Average"],
                            ai_feedback1=result.get("AI_Feedback1", "AI feedback not available"),
