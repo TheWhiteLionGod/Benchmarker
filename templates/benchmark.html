@@ -1,4 +1,86 @@
-{% extends "base.html" %} {% block head %} {{super() }} {% endblock %}
+{% extends "base.html" %} {% block head %} {{ super() }}
+<link
+  href="https://fonts.googleapis.com/css2?family=Fira+Code&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  /* Container fade-in */
+  .container {
+    animation: fadeIn 0.6s ease forwards;
+    opacity: 0;
+  }
+  @keyframes fadeIn {
+    to {
+      opacity: 1;
+    }
+  }
+
+  .code-textarea {
+    font-family: "Fira Code", "Consolas", "Monaco", "Courier New", monospace;
+    font-size: 15px;
+    background: linear-gradient(135deg, #0a0a14, #121628);
+    color: #a0d8ff;
+    border: 2px solid #0bb7c9;
+    border-radius: 10px;
+    padding: 18px 20px;
+    width: 100%;
+    min-height: 240px;
+    resize: vertical;
+    box-shadow: 0 0 8px #08b0bb, inset 0 0 15px #065a5e;
+    line-height: 1.5;
+    overflow: auto;
+    outline: none;
+    transition: border-color 0.4s ease, box-shadow 0.4s ease,
+      background 0.5s ease;
+    caret-color: #08b0bb;
+  }
+
+  .code-textarea::selection {
+    background-color: #08b0bba0;
+    color: #000;
+  }
+
+  .code-textarea:focus {
+    border-color: #08b0bb;
+    background: linear-gradient(135deg, #0e1620, #00373d);
+    box-shadow: 0 0 20px #08b0bb, inset 0 0 20px #08b0bb;
+  }
+
+  /* Placeholder style */
+  .code-textarea::placeholder {
+    color: #7ad3e0;
+    opacity: 0.6;
+    font-style: italic;
+  }
+
+  /* Labels */
+  label {
+    display: block;
+    font-family: "Fira Code", monospace;
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: #08b0bb;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    text-shadow: 0 0 3px #065a5e;
+  }
+
+  /* Center the analyze button and add subtle glow */
+  .btn-analyze {
+    display: block;
+    margin: 30px auto;
+    width: 240px;
+    cursor: pointer;
+    filter: drop-shadow(0 0 6px #08b0bbaa);
+    transition: transform 0.3s ease, filter 0.3s ease;
+  }
+  .btn-analyze:hover {
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 12px #08b0bbff);
+  }
+</style>
+{% endblock %}
 
 <body>
   {% block header %} {{ super() }} {% endblock %} {% block content %}
@@ -7,20 +89,46 @@
       <div class="row">
         {% with messages = get_flashed_messages() %} {% for message in messages
         %}
-        <p style="color: red; text-align: center">{{message}}</p>
+        <p
+          style="
+            color: #08b0bb;
+            text-align: center;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+          "
+        >
+          {{ message }}
+        </p>
         {% endfor %} {% endwith %}
       </div>
-      <form method="post">
-        <div class="py-2 row"></div>
+
+      <form method="post" autocomplete="off">
         {{ form.csrf_token() }}
-        <div class="py-2 row"></div>
-        {{ render_field(form.program1) }}
-        <div class="py-2 row"></div>
-        {{ render_field(form.program2) }}
-        <div class="py-2 row"></div>
-        {{ render_field(form.params) }}
-        <div class="py-2 row"></div>
-        {{ render_field(form.submit) }}
+
+        <div class="mb-4">
+          <label for="{{ form.program1.id }}"></label>
+          {{ render_field(form.program1, class_="code-textarea",
+          placeholder="Enter Function 1 code here") }}
+        </div>
+
+        <div class="mb-4">
+          <label for="{{ form.program2.id }}"></label>
+          {{ render_field(form.program2, class_="code-textarea",
+          placeholder="Enter Function 2 code here") }}
+        </div>
+
+        <div class="mb-4">
+          <label for="{{ form.params.id }}"></label>
+          {{ render_field(form.params, class_="code-textarea",
+          placeholder="Enter params here, each param set on a new line") }}
+        </div>
+
+        <input
+          type="image"
+          src="../static/assets/analyze_button.png"
+          alt="Evaluate"
+          class="btn-analyze"
+        />
       </form>
     </div>
   </main>

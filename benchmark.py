@@ -2,7 +2,7 @@ import time
 import math
 import ast
 
-def benchmark(func1: str, func2: str, params_code: str, iterations: int) -> dict:
+def benchmark(func1: str, func2: str, params_code: str) -> dict:
     func1Times = []
     func2Times = []
 
@@ -12,6 +12,7 @@ def benchmark(func1: str, func2: str, params_code: str, iterations: int) -> dict
     local_vars = {}
     exec(params_code, {}, local_vars)
     params = local_vars["params"]
+    iterations = len(params)
 
     for i in range(iterations):
         local_scope = {"params": params[i]}

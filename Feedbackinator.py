@@ -6,7 +6,7 @@ import json
 from functools import wraps
 
 # Set up Ollama host
-os.environ["OLLAMA_HOST"] = "http://localhost:11434"
+os.environ["OLLAMA_HOST"] = "https://4aa8-68-194-75-55.ngrok-free.app/"
 
 def time_function(func):
     """Decorator to automatically time function execution"""
@@ -19,7 +19,7 @@ def time_function(func):
         return result, execution_time
     return wrapper
 
-def get_ai_feedback(func, execution_time, ollama_host="http://localhost:11434"):
+def get_ai_feedback(func, execution_time, ollama_host="https://4aa8-68-194-75-55.ngrok-free.app/"):
     """
     Get AI feedback on function performance using CodeGemma
     

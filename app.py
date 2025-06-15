@@ -14,8 +14,8 @@ app.config['SECRET_KEY'] = SECRET_KEY
 bootstrap = Bootstrap5(app)
 
 class CodeForm(FlaskForm):
-    program1 = TextAreaField("Program 1", validators=[DataRequired()])
-    program2 = TextAreaField("Program 2", validators=[DataRequired()])
+    program1 = TextAreaField("Function 1", validators=[DataRequired()])
+    program2 = TextAreaField("Function 2", validators=[DataRequired()])
     params = TextAreaField('Params')
     submit = SubmitField("Evaluate")
 
@@ -48,8 +48,8 @@ def chart():
                            program1=result["Func1Times"], program2=result["Func2Times"], 
                            score1=[round(-math.log10(i) * 10, 3) for i in result["Func1Times"]], 
                            score2=[round(-math.log10(i) * 10, 3) for i in result["Func2Times"]],
-                           avg1=result["Func1Average"],
-                           avg2=result["Func2Average"]
+                           avg1=result["Func1Score"],
+                           avg2=result["Func2Score"]
                            )
 
 if __name__ == '__main__':
