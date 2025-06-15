@@ -8,6 +8,10 @@ import time
 import os
 import requests
 import benchmark as bm
+import markdown2
+from markupsafe import Markup
+import re
+
 
 app = Flask(__name__)
 SECRET_KEY = os.urandom(32)
@@ -20,11 +24,21 @@ os.environ["OLLAMA_HOST"] = "https://1e77-68-194-75-55.ngrok-free.app"
 class CodeForm(FlaskForm):
     program1 = TextAreaField("Function 1", validators=[DataRequired()])
     program2 = TextAreaField("Function 2", validators=[DataRequired()])
-    params = TextAreaField('Enter Parameters for your Functions(Optional)')
+    params = TextAreaField('Enter Parameters for your Functions', validators=[DataRequired()])
     submit = SubmitField("Evaluate")
 
 result = {"Func1Times": [], "Func2Times": [], "Func1Score": 0, "Func2Score": 0}
 ai_feedback_status = {"status": "pending", "progress": 0}
+
+
+def minify_html(html_str):
+    # Remove newlines and excessive spaces between tags
+    html_str = re.sub(r'>\s+<', '><', html_str)
+    # Optionally remove leading/trailing whitespace
+    html_str = html_str.strip()
+    return html_str
+
+
 
 def get_ai_feedback(func_code, func_name, raw_times, score, ollama_host=None):
     """
@@ -165,12 +179,14 @@ def generate_ai_feedback_async():
     try:
         ai_feedback_status["status"] = "generating"
         ai_feedback_status["progress"] = 10
-        
+
         # Get AI feedback for function 1
         print("Getting AI feedback for Function 1...")
         result["AI_Feedback1"] = get_ai_feedback(
             result["Program1Code"], "Function 1", result["Func1Times"], result["Func1Score"]
         )
+        ai_feedback1_html = Markup(markdown2.markdown(result.get("AI_Feedback1", "AI feedback not available")))
+        result["AI_Feedback1"] = minify_html(ai_feedback1_html)
         ai_feedback_status["progress"] = 40
         
         # Get AI feedback for function 2
@@ -178,6 +194,8 @@ def generate_ai_feedback_async():
         result["AI_Feedback2"] = get_ai_feedback(
             result["Program2Code"], "Function 2", result["Func2Times"], result["Func2Score"]
         )
+        ai_feedback2_html = Markup(markdown2.markdown(result.get("AI_Feedback2", "AI feedback not available")))
+        result["AI_Feedback2"] = minify_html(ai_feedback2_html)
         ai_feedback_status["progress"] = 70
         
         # Get comparative feedback
@@ -187,11 +205,20 @@ def generate_ai_feedback_async():
             result["Func1Times"], result["Func2Times"],
             result["Func1Score"], result["Func2Score"]
         )
+        comparative_feedback_html = Markup(markdown2.markdown(result.get("Comparative_Feedback", "Comparative feedback not available")))
+        result["Comparative_Feedback"] = minify_html(comparative_feedback_html)
         ai_feedback_status["progress"] = 100
         ai_feedback_status["status"] = "complete"
         
         print("AI feedback generation complete!")
+
+
         
+
+        
+        
+        
+
     except Exception as e:
         ai_feedback_status["status"] = "error"
         ai_feedback_status["error"] = str(e)
@@ -224,6 +251,13 @@ def benchmark():
         # Run benchmark first (fast operation)
         print("Running benchmark...")
         result = bm.benchmark(program1, program2, params)
+        
+        if result == 'Invalid Parameters':
+            return render_template("crash.html", page="chart", reason="Parameters Entered are Invalid")
+        elif result == 'Function 1 Crashed':
+            return render_template("crash.html", page="chart", reason="Function 1 crashed while Testing")
+        elif result == 'Function 2 Crashed':
+            return render_template("crash.html", page="chart", reason="Function 2 crashed while Testing")
         
         # Store original code for display
         result["Program1Code"] = program1
@@ -267,19 +301,26 @@ def chart():
     elif result.get("Program2Code") is None:
         return redirect('benchmark')
     
+    ai_feedback1_html = Markup(markdown2.markdown(result.get("AI_Feedback1", "AI feedback not available")))
+    ai_feedback2_html = Markup(markdown2.markdown(result.get("AI_Feedback2", "AI feedback not available")))
+    comparative_feedback_html = Markup(markdown2.markdown(result.get("Comparative_Feedback", "Comparative feedback not available")))
+
+
+    print(ai_feedback1_html)
+    
     return render_template("chart.html",
-                           labels=[f"Test {i}" for i in range(1, len(result["Func1Times"])+1)],
-                           page="chart",
-                           program1=result.get("Func1Times"), 
-                           program2=result.get("Func2Times"),
-                           avg1=result.get("Func1Score"),
-                           avg2=result.get("Func2Score"),
-                           ai_feedback1=result.get("AI_Feedback1", "AI feedback not available"),
-                           ai_feedback2=result.get("AI_Feedback2", "AI feedback not available"),
-                           comparative_feedback=result.get("Comparative_Feedback", "Comparative feedback not available"),
-                           program1_code=result.get("Program1Code", ""),
-                           program2_code=result.get("Program2Code", "")
-                           )
+                        labels=[f"Test {i}" for i in range(1, len(result["Func1Times"])+1)],
+                        page="chart",
+                        program1=result.get("Func1Times"), 
+                        program2=result.get("Func2Times"),
+                        avg1=result.get("Func1Score"),
+                        avg2=result.get("Func2Score"),
+                        ai_feedback1=ai_feedback1_html,
+                        ai_feedback2=ai_feedback2_html,
+                        comparative_feedback=comparative_feedback_html,
+                        program1_code=result.get("Program1Code", ""),
+                        program2_code=result.get("Program2Code", "")
+                        )
 
 @app.route("/api/feedback")
 def api_feedback():
@@ -310,4 +351,4 @@ def refresh_feedback():
     return jsonify({"message": "AI feedback refresh started"})
 
 if __name__ == '__main__':
-    app.run(debug=False, port=5000)
+    app.run(debug=True, port=5000)

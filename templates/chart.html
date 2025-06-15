@@ -105,6 +105,29 @@
     color: white;
   }
 </style>
+
+
+<style>
+.feedback-text p {
+  margin-bottom: 0.5rem;
+}
+.feedback-text code {
+  background-color: #f8f9fa;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-family: monospace;
+}
+.feedback-text pre {
+  background-color: #f0f0f0;
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+</style>
+
+
+
+
 {% endblock %}
 
 <body>
@@ -176,7 +199,7 @@
             <pre class="code-block p-3"><code>{{ program1_code }}</code></pre>
             
             <h6 class="mt-3">AI Feedback:</h6>
-            <div id="feedback1" class="feedback-text">{{ ai_feedback1 }}</div>
+            <div id="feedback1" class="feedback-text">{{ ai_feedback1 | safe }}</div>
           </div>
         </div>
       </div>
@@ -204,7 +227,7 @@
             <pre class="code-block p-3"><code>{{ program2_code }}</code></pre>
             
             <h6 class="mt-3">AI Feedback:</h6>
-            <div id="feedback2" class="feedback-text">{{ ai_feedback2 }}</div>
+            <div id="feedback2" class="feedback-text">{{ ai_feedback2 | safe }}</div>
           </div>
         </div>
       </div>
@@ -234,7 +257,7 @@
             </div>
             
             <h6 class="mt-3">AI Comparative Feedback:</h6>
-            <div id="comparativeFeedback" class="feedback-text">{{ comparative_feedback }}</div>
+            <div id="comparativeFeedback" class="feedback-text">{{ comparative_feedback | safe }} </div>
           </div>
         </div>
       </div>
@@ -357,13 +380,13 @@
                 
                 // Update feedback content
                 if (data.ai_feedback1 && data.ai_feedback1 !== "Analyzing function performance...") {
-                    document.getElementById('feedback1').textContent = data.ai_feedback1;
+                    document.getElementById('feedback1').innerHTML = data.ai_feedback1;
                 }
                 if (data.ai_feedback2 && data.ai_feedback2 !== "Analyzing function performance...") {
-                    document.getElementById('feedback2').textContent = data.ai_feedback2;
+                    document.getElementById('feedback2').innerHTML = data.ai_feedback2;
                 }
                 if (data.comparative_feedback && data.comparative_feedback !== "Generating comparative analysis...") {
-                    document.getElementById('comparativeFeedback').textContent = data.comparative_feedback;
+                    document.getElementById('comparativeFeedback').innerHTML = data.comparative_feedback;
                 }
                 
                 // Stop polling when complete or error
