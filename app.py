@@ -20,7 +20,7 @@ os.environ["OLLAMA_HOST"] = "https://1e77-68-194-75-55.ngrok-free.app"
 class CodeForm(FlaskForm):
     program1 = TextAreaField("Function 1", validators=[DataRequired()])
     program2 = TextAreaField("Function 2", validators=[DataRequired()])
-    params = TextAreaField('Enter Parameters for your Functions(Optional)')
+    params = TextAreaField('Enter Parameters for your Functions', validators=[DataRequired()])
     submit = SubmitField("Evaluate")
 
 result = {"Func1Times": [], "Func2Times": [], "Func1Score": 0, "Func2Score": 0}
@@ -224,6 +224,13 @@ def benchmark():
         # Run benchmark first (fast operation)
         print("Running benchmark...")
         result = bm.benchmark(program1, program2, params)
+        
+        if result == 'Invalid Parameters':
+            return render_template("crash.html", page="chart", reason="Parameters Entered are Invalid")
+        elif result == 'Function 1 Crashed':
+            return render_template("crash.html", page="chart", reason="Function 1 crashed while Testing")
+        elif result == 'Function 2 Crashed':
+            return render_template("crash.html", page="chart", reason="Function 2 crashed while Testing")
         
         # Store original code for display
         result["Program1Code"] = program1
