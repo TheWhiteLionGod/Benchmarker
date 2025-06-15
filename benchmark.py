@@ -1,13 +1,20 @@
 import time
 import math
 import ast
+import numpy as np
 
 def benchmark(func1: str, func2: str, params_code: str) -> dict:
     func1Times = []
     func2Times = []
-    func1Compiled = compile(func1, "", "exec")
-    func2Compiled = compile(func2, "", "exec")
-    
+    try:
+        func1Compiled = compile(func1, "", "exec")
+    except Exception:
+        return 'Function 1 Crashed'
+    try:
+        func2Compiled = compile(func2, "", "exec")
+    except Exception:
+        return 'Function 2 Crashed'
+
     # Create a global environment with common imports
     global_env = {
         '__builtins__': __builtins__,
@@ -32,7 +39,6 @@ def benchmark(func1: str, func2: str, params_code: str) -> dict:
     
     # Try to import common libraries that users might need
     try:
-        import numpy as np
         global_env['np'] = np
         global_env['numpy'] = np
         global_env['array'] = np.array
@@ -53,9 +59,12 @@ def benchmark(func1: str, func2: str, params_code: str) -> dict:
         pass
     
     local_vars = {}
-    exec(params_code, global_env, local_vars)
-    params = local_vars["params"]
-    iterations = len(params)
+    try:
+        exec(params_code, global_env, local_vars)
+        params = local_vars["params"]
+        iterations = len(params)
+    except Exception:
+        return 'Invalid Parameters'
     
     for i in range(iterations):
         # Create scope for each function execution with common imports
@@ -63,7 +72,10 @@ def benchmark(func1: str, func2: str, params_code: str) -> dict:
         local_scope.update(global_env)  # Add common imports to local scope
         
         start = time.perf_counter()
-        exec(func1Compiled, local_scope)
+        try:
+            exec(func1Compiled, local_scope)
+        except Exception:
+            return 'Function 1 Crashed'
         func1Times.append(time.perf_counter() - start)
         
         # Reset local scope for second function
@@ -71,7 +83,10 @@ def benchmark(func1: str, func2: str, params_code: str) -> dict:
         local_scope.update(global_env)
         
         start = time.perf_counter()
-        exec(func2Compiled, local_scope)
+        try:
+            exec(func2Compiled, local_scope)
+        except Exception:
+            return 'Function 2 Crashed'
         func2Times.append(time.perf_counter() - start)
     
     func1Avg = sum(func1Times) / len(func1Times)
@@ -116,7 +131,7 @@ arr, target = params
 result = normal_search(arr, target)
     """
 
-    arr = list(range(1, 100000000))
+    arr = list(range(1, 100_000_000))
 
     params = [
         (arr, 500000),
