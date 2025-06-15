@@ -27,6 +27,7 @@
   .feedback-text {
     white-space: pre-wrap;
     line-height: 1.6;
+    min-height: 100px;
   }
   
   .performance-metrics {
@@ -34,6 +35,74 @@
     border-radius: 8px;
     padding: 15px;
     margin: 10px 0;
+  }
+
+  .loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .progress-bar-container {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    height: 20px;
+    margin: 10px 0;
+    overflow: hidden;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #45a049);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin-left: 10px;
+  }
+
+  .status-pending { background-color: #ffa726; }
+  .status-generating { background-color: #42a5f5; }
+  .status-complete { background-color: #66bb6a; }
+  .status-error { background-color: #ef5350; }
+
+  .winner-badge {
+    font-size: 1.2em;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    display: inline-block;
+    margin-left: 10px;
+  }
+
+  .winner-func1 { 
+    background: linear-gradient(45deg, #4CAF50, #45a049);
+    color: white;
+  }
+
+  .winner-func2 { 
+    background: linear-gradient(45deg, #FF9800, #F57C00);
+    color: white;
   }
 </style>
 {% endblock %}
@@ -46,11 +115,39 @@
     <!-- Performance Chart Section -->
     <div class="row mb-4">
       <div class="col-12">
-        <div class="d-flex justify-content-center" style="gap: 100px; margin-bottom: 4px">
-          <span class="fs-5 fw-semibold">Func1 Score: {{ avg1 }}</span>
-          <span class="fs-5 fw-semibold">Func2 Score: {{ avg2 }}</span>
+        <div class="d-flex justify-content-center align-items-center" style="gap: 50px; margin-bottom: 20px;">
+          <div class="text-center">
+            <span class="fs-5 fw-semibold">Function 1 Score: {{ avg1 }}</span>
+            {% if avg1 > avg2 %}
+              <span class="winner-badge winner-func1">🏆 WINNER</span>
+            {% endif %}
+          </div>
+          <div class="text-center">
+            <span class="fs-5 fw-semibold">Function 2 Score: {{ avg2 }}</span>
+            {% if avg2 > avg1 %}
+              <span class="winner-badge winner-func2">🏆 WINNER</span>
+            {% endif %}
+          </div>
         </div>
         <canvas id="lineChart" height="100" class="rounded-3 px-5"></canvas>
+      </div>
+    </div>
+
+    <!-- AI Analysis Status -->
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+          <div class="card-body">
+            <h6 class="card-title">
+              <i class="fas fa-robot me-2"></i>AI Analysis Status
+              <span id="statusBadge" class="status-badge status-pending">Initializing</span>
+            </h6>
+            <div class="progress-bar-container">
+              <div id="progressBar" class="progress-bar" style="width: 0%">0%</div>
+            </div>
+            <small id="statusText">Preparing AI analysis...</small>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -62,19 +159,24 @@
           <div class="card-header">
             <h5 class="card-title mb-0">
               <i class="fas fa-robot me-2"></i>AI Analysis - Function 1
+              {% if avg1 > avg2 %}
+                <span class="badge bg-success ms-2">Better Performance</span>
+              {% endif %}
+              <span id="loadingIcon1" class="loading-spinner ms-2" style="display: none;"></span>
             </h5>
           </div>
           <div class="card-body">
             <div class="performance-metrics">
               <strong>Performance Metrics:</strong><br>
-              Score: {{ avg1 }}
+              Score: {{ avg1 }} (higher is better)<br>
+              <small>Score calculated using -log₁₀(avg_time) × 10</small>
             </div>
             
             <h6>Code:</h6>
             <pre class="code-block p-3"><code>{{ program1_code }}</code></pre>
             
             <h6 class="mt-3">AI Feedback:</h6>
-            <div class="feedback-text">{{ ai_feedback1 }}</div>
+            <div id="feedback1" class="feedback-text">{{ ai_feedback1 }}</div>
           </div>
         </div>
       </div>
@@ -85,19 +187,24 @@
           <div class="card-header">
             <h5 class="card-title mb-0">
               <i class="fas fa-robot me-2"></i>AI Analysis - Function 2
+              {% if avg2 > avg1 %}
+                <span class="badge bg-success ms-2">Better Performance</span>
+              {% endif %}
+              <span id="loadingIcon2" class="loading-spinner ms-2" style="display: none;"></span>
             </h5>
           </div>
           <div class="card-body">
             <div class="performance-metrics">
               <strong>Performance Metrics:</strong><br>
-              Score: {{ avg2 }}
+              Score: {{ avg2 }} (higher is better)<br>
+              <small>Score calculated using -log₁₀(avg_time) × 10</small>
             </div>
             
             <h6>Code:</h6>
             <pre class="code-block p-3"><code>{{ program2_code }}</code></pre>
             
             <h6 class="mt-3">AI Feedback:</h6>
-            <div class="feedback-text">{{ ai_feedback2 }}</div>
+            <div id="feedback2" class="feedback-text">{{ ai_feedback2 }}</div>
           </div>
         </div>
       </div>
@@ -110,21 +217,24 @@
           <div class="card-header">
             <h5 class="card-title mb-0">
               <i class="fas fa-balance-scale me-2"></i>Comparative Analysis
+              <span id="loadingIcon3" class="loading-spinner ms-2" style="display: none;"></span>
             </h5>
           </div>
           <div class="card-body">
             <div class="performance-metrics">
               <strong>Head-to-Head Comparison:</strong><br>
-              Function 1 Average: {{ avg1 }}s | Function 2 Average: {{ avg2 }}s<br>
-              {% if avg1 < avg2 %}
-                <span class="badge bg-success">Function 1 is {{ "%.2f"|format((avg2/avg1 - 1) * 100) }}% faster</span>
+              Function 1 Score: {{ avg1 }} | Function 2 Score: {{ avg2 }}<br>
+              {% if avg1 > avg2 %}
+                <span class="badge bg-success">Function 1 is better by {{ "%.3f"|format(avg1 - avg2) }} points</span>
+              {% elif avg2 > avg1 %}
+                <span class="badge bg-success">Function 2 is better by {{ "%.3f"|format(avg2 - avg1) }} points</span>
               {% else %}
-                <span class="badge bg-success">Function 2 is {{ "%.2f"|format((avg1/avg2 - 1) * 100) }}% faster</span>
+                <span class="badge bg-warning">Functions have identical performance</span>
               {% endif %}
             </div>
             
             <h6 class="mt-3">AI Comparative Feedback:</h6>
-            <div class="feedback-text">{{ comparative_feedback }}</div>
+            <div id="comparativeFeedback" class="feedback-text">{{ comparative_feedback }}</div>
           </div>
         </div>
       </div>
@@ -136,7 +246,7 @@
         <a href="/benchmark" class="btn btn-primary btn-lg me-3">
           <i class="fas fa-code me-2"></i>Analyze New Functions
         </a>
-        <button onclick="refreshFeedback()" class="btn btn-outline-secondary btn-lg">
+        <button id="refreshBtn" onclick="refreshFeedback()" class="btn btn-outline-secondary btn-lg">
           <i class="fas fa-refresh me-2"></i>Refresh AI Analysis
         </button>
       </div>
@@ -152,7 +262,7 @@
             labels: {{ labels | safe }},
             datasets: [
                 {
-                    label: "Time for Program 1",
+                    label: "Function 1 Execution Time",
                     data: {{ program1 | safe }},
                     borderColor: "#FF0000",
                     backgroundColor: "rgba(255, 0, 0, 0.1)",
@@ -160,7 +270,7 @@
                     fill: true
                 },
                 {
-                    label: "Time for Program 2", 
+                    label: "Function 2 Execution Time", 
                     data: {{ program2 | safe }},
                     borderColor: "#ff8a33",
                     backgroundColor: "rgba(255, 138, 51, 0.1)",
@@ -180,44 +290,142 @@
                     type: 'linear',
                     position: 'left',
                     beginAtZero: true,
-                    reverse: true,
-                    label: "Time in Seconds"
+                    title: {
+                        display: true,
+                        text: 'Execution Time (seconds) - Lower is Better'
+                    }
+                }
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Function Execution Time Comparison (Raw Times)'
+                },
+                legend: {
+                    display: true,
+                    position: 'top'
                 }
             }
         }
     });
 
-    // Function to refresh AI feedback
-    function refreshFeedback() {
-        // Show loading indicator
-        const feedbackElements = document.querySelectorAll('.feedback-text');
-        feedbackElements.forEach(el => {
-            el.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing AI analysis...';
-        });
+    // AI Feedback polling
+    let pollingInterval;
+    
+    function updateStatus(status) {
+        const statusBadge = document.getElementById('statusBadge');
+        const statusText = document.getElementById('statusText');
+        const loadingIcons = document.querySelectorAll('[id^="loadingIcon"]');
+        
+        statusBadge.className = `status-badge status-${status}`;
+        
+        switch(status) {
+            case 'pending':
+                statusBadge.textContent = 'Pending';
+                statusText.textContent = 'Waiting to start AI analysis...';
+                break;
+            case 'generating':
+                statusBadge.textContent = 'Generating';
+                statusText.textContent = 'AI is analyzing your functions...';
+                loadingIcons.forEach(icon => icon.style.display = 'inline-block');
+                break;
+            case 'complete':
+                statusBadge.textContent = 'Complete';
+                statusText.textContent = 'AI analysis completed successfully!';
+                loadingIcons.forEach(icon => icon.style.display = 'none');
+                break;
+            case 'error':
+                statusBadge.textContent = 'Error';
+                statusText.textContent = 'Error occurred during AI analysis';
+                loadingIcons.forEach(icon => icon.style.display = 'none');
+                break;
+        }
+    }
 
-        // Make API call to refresh feedback
+    function updateProgress(progress) {
+        const progressBar = document.getElementById('progressBar');
+        progressBar.style.width = progress + '%';
+        progressBar.textContent = progress + '%';
+    }
+
+    function pollFeedback() {
         fetch('/api/feedback')
             .then(response => response.json())
             .then(data => {
-                // Update feedback sections
-                const feedback1 = document.querySelector('.col-lg-6:first-child .feedback-text');
-                const feedback2 = document.querySelector('.col-lg-6:last-child .feedback-text');
-                const comparativeFeedback = document.querySelector('.comparative-card .feedback-text');
+                updateStatus(data.status);
+                updateProgress(data.progress);
                 
-                if (feedback1) feedback1.textContent = data.ai_feedback1;
-                if (feedback2) feedback2.textContent = data.ai_feedback2;
-                if (comparativeFeedback) comparativeFeedback.textContent = data.comparative_feedback;
+                // Update feedback content
+                if (data.ai_feedback1 && data.ai_feedback1 !== "Analyzing function performance...") {
+                    document.getElementById('feedback1').textContent = data.ai_feedback1;
+                }
+                if (data.ai_feedback2 && data.ai_feedback2 !== "Analyzing function performance...") {
+                    document.getElementById('feedback2').textContent = data.ai_feedback2;
+                }
+                if (data.comparative_feedback && data.comparative_feedback !== "Generating comparative analysis...") {
+                    document.getElementById('comparativeFeedback').textContent = data.comparative_feedback;
+                }
+                
+                // Stop polling when complete or error
+                if (data.status === 'complete' || data.status === 'error') {
+                    clearInterval(pollingInterval);
+                    document.getElementById('refreshBtn').disabled = false;
+                }
             })
             .catch(error => {
-                console.error('Error refreshing feedback:', error);
-                feedbackElements.forEach(el => {
-                    el.innerHTML = '<span class="text-warning">Error refreshing feedback. Please try again.</span>';
-                });
+                console.error('Error polling feedback:', error);
+                updateStatus('error');
+                clearInterval(pollingInterval);
+                document.getElementById('refreshBtn').disabled = false;
             });
     }
 
-    // Auto-refresh feedback every 30 seconds (optional)
-    // setInterval(refreshFeedback, 30000);
+    function refreshFeedback() {
+        const refreshBtn = document.getElementById('refreshBtn');
+        refreshBtn.disabled = true;
+        
+        fetch('/api/feedback/refresh', { method: 'GET' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    refreshBtn.disabled = false;
+                } else {
+                    // Start polling for updates
+                    startPolling();
+                }
+            })
+            .catch(error => {
+                console.error('Error refreshing feedback:', error);
+                alert('Error starting refresh');
+                refreshBtn.disabled = false;
+            });
+    }
+
+    function startPolling() {
+        // Clear any existing polling
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+        }
+        
+        // Start polling every 2 seconds
+        pollingInterval = setInterval(pollFeedback, 2000);
+        
+        // Do initial poll
+        pollFeedback();
+    }
+
+    // Start polling when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        startPolling();
+    });
+
+    // Clean up polling when leaving page
+    window.addEventListener('beforeunload', function() {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+        }
+    });
   </script>
   {% endblock %} 
   
