@@ -5,6 +5,7 @@ from wtforms import StringField, SubmitField, TextAreaField
 from wtforms.validators import DataRequired
 
 import os
+import math
 import benchmark as bm
 
 app = Flask(__name__)
@@ -15,22 +16,10 @@ bootstrap = Bootstrap5(app)
 class CodeForm(FlaskForm):
     program1 = TextAreaField("Program 1", validators=[DataRequired()])
     program2 = TextAreaField("Program 2", validators=[DataRequired()])
+    params = TextAreaField('Params')
     submit = SubmitField("Evaluate")
 
 
-arr = list(range(1, 1000000))
-params = [
-    (arr, 500000),
-    (arr, 567890),
-    (arr, 432100),
-    (arr, 876543),
-    (arr, 123456),
-    (arr, 999999),
-    (arr, 1),
-    (arr, 1000000),
-    (arr, 10001),
-    (arr, -1)
-]
 
 result = {}
 
@@ -45,6 +34,7 @@ def benchmark():
     if program.validate_on_submit():
         program1 = program.program1.data
         program2 = program.program2.data
+        params = program.params.data
         result = bm.benchmark(program1, program2, params, 10)
         return redirect('chart')
 
@@ -53,7 +43,14 @@ def benchmark():
 @app.route("/chart")
 def chart():
     global result
-    return render_template("chart.html", labels=[i for i in result], data=[result[i] for i in result])
+    return render_template("chart.html", 
+                           labels=[f"Param Set {i}" for i in range(1, len(result["Func1Times"])+1)], 
+                           program1=result["Func1Times"], program2=result["Func2Times"], 
+                           score1=[round(-math.log10(i) * 10, 3) for i in result["Func1Times"]], 
+                           score2=[round(-math.log10(i) * 10, 3) for i in result["Func2Times"]],
+                           avg1=result["Func1Average"],
+                           avg2=result["Func2Average"]
+                           )
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

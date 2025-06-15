@@ -2,25 +2,55 @@
 
 <body>
   {% block header %} {{ super() }} {% endblock %} {% block content %}
+  <div
+    class="d-flex justify-content-center"
+    style="gap: 100px; margin-bottom: 4px"
+  >
+    <span class="fs-5 fw-semibold">Func1 Score: {{ avg1 }}</span>
+    <span class="fs-5 fw-semibold">Func2 Score: {{ avg2 }}</span>
+  </div>
   <canvas id="lineChart" height="100" class="rounded-3 px-5"></canvas>
   <script>
     var ctx = document.getElementById("lineChart").getContext("2d");
     var lineChart = new Chart(ctx, {
-        type: "bar",
+        type: "line",
         data: {
             labels: {{ labels | safe }},
             datasets: [
                 {
-                    label: "Data Points",
-                    data: {{ data | safe }},
-                    fill: false,
-                    borderColor: "#FFFFFF",
-                    lineTension: 0.1
+                    label: "Time for Program 1",
+                    data: {{ program1 | safe }},
+                    borderColor: "#FF0000",
+                    yAxisID: 'left'
+                },
+                {
+                    label: "Time for Program 2",
+                    data: {{ program2 | safe }},
+                    borderColor: "#ff8a33",
+                    yAxisID: 'left'
                 }
             ]
         },
-        option: {
-            responsive: false
+        options: {
+            responsive: true,
+            scales: {
+                left: {
+                    type: 'linear',
+                    position: 'left',
+                    beginAtZero: true,
+                    reverse: true,
+                    label: "Time in Seconds"
+                },
+                right: {
+                    type: 'linear',
+                    position: 'right',
+                    beginAtZero: true,
+                    label: "Calculated Score",
+                    grid: {
+                        drawOnChartArea: false
+                    }
+                }
+            }
         }
     });
   </script>
