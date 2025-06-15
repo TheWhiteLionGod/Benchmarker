@@ -1,11 +1,10 @@
 from flask import Flask, render_template, redirect, jsonify
 from flask_bootstrap import Bootstrap5
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField
+from wtforms import SubmitField, TextAreaField
 from wtforms.validators import DataRequired
 
 import os
-import math
 import requests
 import benchmark as bm
 
@@ -15,18 +14,18 @@ app.config['SECRET_KEY'] = SECRET_KEY
 bootstrap = Bootstrap5(app)
 
 # Set up Ollama host
-os.environ["OLLAMA_HOST"] = "http://localhost:11434"
+os.environ["OLLAMA_HOST"] = "https://4aa8-68-194-75-55.ngrok-free.app/"
 
 class CodeForm(FlaskForm):
-    program1 = TextAreaField("Program 1", validators=[DataRequired()])
-    program2 = TextAreaField("Program 2", validators=[DataRequired()])
+    program1 = TextAreaField("Function 1", validators=[DataRequired()])
+    program2 = TextAreaField("Function 2", validators=[DataRequired()])
     params = TextAreaField('Params')
     submit = SubmitField("Evaluate")
 
 
 result = {"Func1Times": [], "Func2Times": [], "Func1Average": 0, "Func2Average": 0} 
 
-def get_ai_feedback(func_code, func_name, execution_times, ollama_host="http://localhost:11434"):
+def get_ai_feedback(func_code, func_name, execution_times, ollama_host=None):
     """
     Get AI feedback on function performance using CodeGemma
     
@@ -39,6 +38,8 @@ def get_ai_feedback(func_code, func_name, execution_times, ollama_host="http://l
     Returns:
         AI feedback as string
     """
+    ollama_host = os.environ["OLLAMA_HOST"] if ollama_host is None else ollama_host
+
     avg_time = sum(execution_times) / len(execution_times)
     min_time = min(execution_times)
     max_time = max(execution_times)
@@ -82,15 +83,17 @@ Keep the feedback concise and actionable.
         if response.status_code == 200:
             return response.json()["response"]
         else:
-            return f"Error: Failed to get response from Ollama (Status: {response.status_code})"
+            return f"Error: Failed to get response from Ollama (Status: {response.status_code})"    
             
     except requests.RequestException as e:
         return f"Error connecting to Ollama: {str(e)}"
 
-def get_comparative_feedback(func1_code, func2_code, func1_times, func2_times, ollama_host="http://localhost:11434"):
+def get_comparative_feedback(func1_code, func2_code, func1_times, func2_times, ollama_host=None):
     """
     Get comparative AI feedback for two functions
     """
+    ollama_host = os.environ["OLLAMA_HOST"] if ollama_host is None else ollama_host
+
     avg1 = sum(func1_times) / len(func1_times)
     avg2 = sum(func2_times) / len(func2_times)
     
@@ -150,16 +153,13 @@ def benchmark():
         program1 = program.program1.data
         program2 = program.program2.data
         params = program.params.data
-        iterations = 0
 
         # Updating Parameters
         if params == "":
-            iterations = 10
             params = """
 params = [i for i in range(10)]
 """
         else:
-            iterations = len(eval(params))
             params = f"""
 params = {params}
 """
@@ -167,15 +167,13 @@ params = {params}
         # Benchmarking Results
         
         # Run benchmark
-        result = bm.benchmark(program1, program2, params, iterations)
+        result = bm.benchmark(program1, program2, params)
         
         # Get AI feedback for both functions
         print("Getting AI feedback...")
         result["AI_Feedback1"] = get_ai_feedback(program1, "Function 1", result["Func1Times"])
         result["AI_Feedback2"] = get_ai_feedback(program2, "Function 2", result["Func2Times"])
-        result["Comparative_Feedback"] = get_comparative_feedback(
-            program1, program2, result["Func1Times"], result["Func2Times"]
-        )
+        result["Comparative_Feedback"] = get_comparative_feedback(program1, program2, result["Func1Times"], result["Func2Times"])
         
         # Store original code for display
         result["Program1Code"] = program1
@@ -190,10 +188,10 @@ def chart():
     return render_template("chart.html",
                            labels=[f"Param Set {i}" for i in range(1, len(result["Func1Times"])+1)],
                            page="chart",
-                           program1=result["Func1Times"], 
-                           program2=result["Func2Times"],
-                           avg1=result["Func1Average"],
-                           avg2=result["Func2Average"],
+                           program1=result.get("Func1Times"), 
+                           program2=result.get("Func2Times"),
+                           avg1=result.get("Func1Score"),
+                           avg2=result.get("Func2Score"),
                            ai_feedback1=result.get("AI_Feedback1", "AI feedback not available"),
                            ai_feedback2=result.get("AI_Feedback2", "AI feedback not available"),
                            comparative_feedback=result.get("Comparative_Feedback", "Comparative feedback not available"),

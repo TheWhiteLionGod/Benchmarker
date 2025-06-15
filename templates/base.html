@@ -1,62 +1,136 @@
 {% from 'bootstrap4/form.html' import render_field %}
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="dark">
-{% block head %}
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  {% block head %}
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Benchmarker</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT" crossorigin="anonymous">
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT"
+      crossorigin="anonymous"
+    />
     {{ bootstrap.load_css() }}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-{% endblock %}
-<body>
+  </head>
+  {% endblock %}
+  <body>
     {% block header %}
     <!-- Section 0 -->
-    <div class="container-fluid px-5"> 
-        <header class="d-flex flex-wrap justify-content-center py-3 mb-4 border-bottom"> 
-            <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-body-emphasis text-decoration-none"> <svg fill="#FFFFFF" height="4em" width="4em" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" xml:space="preserve"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <g> <g> <g> <path d="M126.653,452.716h-1.078c-4.465,0-8.084,3.62-8.084,8.084s3.62,8.084,8.084,8.084h1.078c4.465,0,8.084-3.62,8.084-8.084 S131.117,452.716,126.653,452.716z"></path> <path d="M460.8,323.368h-56.589V212.884c0-16.345-13.297-29.642-29.642-29.642h-56.589v-153.6 C317.979,13.297,304.682,0,288.337,0h-64.674c-16.345,0-29.642,13.297-29.642,29.642v67.368h-56.589 c-16.345,0-29.642,13.297-29.642,29.642v196.716H51.2c-28.231,0-51.2,22.969-51.2,51.2V460.8C0,489.031,22.969,512,51.2,512 h409.6c28.231,0,51.2-22.969,51.2-51.2v-86.232C512,346.337,489.031,323.368,460.8,323.368z M317.979,199.411h56.589 c7.43,0,13.474,6.044,13.474,13.474v153.6h-70.063V199.411z M210.189,29.642c0-7.43,6.044-13.474,13.474-13.474h64.674 c7.43,0,13.474,6.044,13.474,13.474v336.842h-70.063V126.653c0-13.544-9.13-24.994-21.558-28.521V29.642z M123.958,126.653 c0-7.43,6.044-13.474,13.474-13.474h64.674c7.43,0,13.474,6.044,13.474,13.474v239.832h-91.621V126.653z M495.832,417.684 c0,19.316-15.716,35.032-35.032,35.032H223.663c-4.465,0-8.084,3.62-8.084,8.084s3.62,8.084,8.084,8.084H460.8 c13.538,0,25.866-5.282,35.032-13.893v5.809c0,19.316-15.716,35.032-35.032,35.032H51.2c-19.316,0-35.032-15.716-35.032-35.032 v-48.925c9.165,8.611,21.493,13.893,35.032,13.893h409.6c13.538,0,25.866-5.282,35.032-13.893V417.684z M460.8,409.6H51.2 c-19.316,0-35.032-15.716-35.032-35.032c0-19.316,15.716-35.032,35.032-35.032h56.589v26.947H61.979 c-4.465,0-8.084,3.62-8.084,8.084s3.62,8.084,8.084,8.084h388.042c4.465,0,8.084-3.62,8.084-8.084s-3.62-8.084-8.084-8.084 h-45.811v-26.947H460.8c19.316,0,35.032,15.716,35.032,35.032C495.832,393.884,480.116,409.6,460.8,409.6z"></path> <path d="M182.703,452.716h-1.078c-4.465,0-8.084,3.62-8.084,8.084s3.62,8.084,8.084,8.084h1.078c4.465,0,8.084-3.62,8.084-8.084 S187.168,452.716,182.703,452.716z"></path> </g> </g> </g> </g></svg> <span class="fs-4 px-4 pt-2">Benchmarker</span> </a> 
-            <ul class="nav nav-pills pt-3">
-                {% if page == "home"%}
-                    <li class="nav-item"><a href="#section-1" class="nav-link active" aria-current="page">Home</a></li> 
-                    <li class="nav-item"><a href="#section-2" class="nav-link">Features</a></li> 
-                    <li class="nav-item"><a href="{{url_for('benchmark')}}" class="nav-link">Benchmarking</a></li>
-                {% endif %} 
-
-                {% if page == "benchmark"%}
-                    <li class="nav-item"><a href="{{url_for('homepage')}}" class="nav-link" aria-current="page">Home</a></li> 
-                    <li class="nav-item"><a href="{{url_for('homepage')}}" class="nav-link">Features</a></li> 
-                    <li class="nav-item"><a href="{{url_for('benchmark')}}" class="nav-link active">Benchmarking</a></li>
-                {% endif %}
-
-                {% if page == "chart"%}
-                    <li class="nav-item"><a href="{{url_for('homepage')}}" class="nav-link" aria-current="page">Home</a></li> 
-                    <li class="nav-item"><a href="{{url_for('homepage')}}" class="nav-link">Features</a></li> 
-                    <li class="nav-item"><a href="{{url_for('benchmark')}}" class="nav-link">Benchmarking</a></li>
-                {% endif %}
-            </ul> 
-        </header> 
+    <div class="container-fluid px-5">
+      <header
+        class="d-flex flex-wrap justify-content-center py-3 mb-4 border-bottom"
+      >
+        <a
+          href="/"
+          class="d-flex align-items-center mb-3 mb-md-0 me-md-auto link-body-emphasis text-decoration-none"
+        >
+          <svg
+            fill="#FFFFFF"
+            height="4em"
+            width="4em"
+            version="1.1"
+            id="Layer_1"
+            xmlns="http://www.w3.org/2000/svg"
+            xmlns:xlink="http://www.w3.org/1999/xlink"
+            viewBox="0 0 512 512"
+            xml:space="preserve"
+          >
+            <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+            <g
+              id="SVGRepo_tracerCarrier"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            ></g>
+            <g id="SVGRepo_iconCarrier">
+              <g>
+                <g>
+                  <g>
+                    <path
+                      d="M126.653,452.716h-1.078c-4.465,0-8.084,3.62-8.084,8.084s3.62,8.084,8.084,8.084h1.078c4.465,0,8.084-3.62,8.084-8.084 S131.117,452.716,126.653,452.716z"
+                    ></path>
+                    <path
+                      d="M460.8,323.368h-56.589V212.884c0-16.345-13.297-29.642-29.642-29.642h-56.589v-153.6 C317.979,13.297,304.682,0,288.337,0h-64.674c-16.345,0-29.642,13.297-29.642,29.642v67.368h-56.589 c-16.345,0-29.642,13.297-29.642,29.642v196.716H51.2c-28.231,0-51.2,22.969-51.2,51.2V460.8C0,489.031,22.969,512,51.2,512 h409.6c28.231,0,51.2-22.969,51.2-51.2v-86.232C512,346.337,489.031,323.368,460.8,323.368z M317.979,199.411h56.589 c7.43,0,13.474,6.044,13.474,13.474v153.6h-70.063V199.411z M210.189,29.642c0-7.43,6.044-13.474,13.474-13.474h64.674 c7.43,0,13.474,6.044,13.474,13.474v336.842h-70.063V126.653c0-13.544-9.13-24.994-21.558-28.521V29.642z M123.958,126.653 c0-7.43,6.044-13.474,13.474-13.474h64.674c7.43,0,13.474,6.044,13.474,13.474v239.832h-91.621V126.653z M495.832,417.684 c0,19.316-15.716,35.032-35.032,35.032H223.663c-4.465,0-8.084,3.62-8.084,8.084s3.62,8.084,8.084,8.084H460.8 c13.538,0,25.866-5.282,35.032-13.893v5.809c0,19.316-15.716,35.032-35.032,35.032H51.2c-19.316,0-35.032-15.716-35.032-35.032 v-48.925c9.165,8.611,21.493,13.893,35.032,13.893h409.6c13.538,0,25.866-5.282,35.032-13.893V417.684z M460.8,409.6H51.2 c-19.316,0-35.032-15.716-35.032-35.032c0-19.316,15.716-35.032,35.032-35.032h56.589v26.947H61.979 c-4.465,0-8.084,3.62-8.084,8.084s3.62,8.084,8.084,8.084h388.042c4.465,0,8.084-3.62,8.084-8.084s-3.62-8.084-8.084-8.084 h-45.811v-26.947H460.8c19.316,0,35.032,15.716,35.032,35.032C495.832,393.884,480.116,409.6,460.8,409.6z"
+                    ></path>
+                    <path
+                      d="M182.703,452.716h-1.078c-4.465,0-8.084,3.62-8.084,8.084s3.62,8.084,8.084,8.084h1.078c4.465,0,8.084-3.62,8.084-8.084 S187.168,452.716,182.703,452.716z"
+                    ></path>
+                  </g>
+                </g>
+              </g>
+            </g>
+          </svg>
+          <span class="fs-4 px-4 pt-2">Benchmarker</span>
+        </a>
+        <ul class="nav nav-pills pt-3">
+          {% if page == "home"%}
+          <li class="nav-item">
+            <a href="#section-1" class="nav-link active" aria-current="page"
+              >Home</a
+            >
+          </li>
+          <li class="nav-item">
+            <a href="#section-2" class="nav-link">Features</a>
+          </li>
+          <li class="nav-item">
+            <a href="{{url_for('benchmark')}}" class="nav-link">Benchmarking</a>
+          </li>
+          {% endif %} {% if page == "benchmark"%}
+          <li class="nav-item">
+            <a
+              href="{{url_for('homepage')}}"
+              class="nav-link"
+              aria-current="page"
+              >Home</a
+            >
+          </li>
+          <li class="nav-item">
+            <a href="{{url_for('homepage')}}" class="nav-link">Features</a>
+          </li>
+          <li class="nav-item">
+            <a href="{{url_for('benchmark')}}" class="nav-link active"
+              >Benchmarking</a
+            >
+          </li>
+          {% endif %}
+        </ul>
+      </header>
     </div>
-    {% endblock %}
-
-    {% block content %}
-    
-    {% endblock %}
-
-    {% block footer %}
+    {% endblock %} {% block content %} {% endblock %} {% block footer %}
     <!-- Section 3 -->
-     <div class="container"> 
-        <footer class="py-3 my-4"> 
-            <ul class="nav justify-content-center border-bottom pb-3 mb-3"> 
-                <li class="nav-item"><a href="{{url_for('homepage')}}" class="nav-link px-2 text-body-secondary">Home</a></li> 
-                <li class="nav-item"><a href="{{url_for('homepage')}}" class="nav-link px-2 text-body-secondary">Features</a></li> 
-                <li class="nav-item"><a href="{{url_for('benchmark')}}" class="nav-link px-2 text-body-secondary">Benchmark</a></li> 
-            </ul> 
-            <p class="text-center text-body-secondary">Credits to <b>Aryan Agarwal, Sahas Patel, Aarav Arya, and Vikkranth Gamini</b></p> 
-        </footer> 
+    <div class="container">
+      <footer class="py-3 my-4">
+        <ul class="nav justify-content-center border-bottom pb-3 mb-3">
+          <li class="nav-item">
+            <a
+              href="{{url_for('homepage')}}"
+              class="nav-link px-2 text-body-secondary"
+              >Home</a
+            >
+          </li>
+          <li class="nav-item">
+            <a
+              href="{{url_for('homepage')}}"
+              class="nav-link px-2 text-body-secondary"
+              >Features</a
+            >
+          </li>
+          <li class="nav-item">
+            <a
+              href="{{url_for('benchmark')}}"
+              class="nav-link px-2 text-body-secondary"
+              >Benchmark</a
+            >
+          </li>
+        </ul>
+        <p class="text-center text-body-secondary">
+          Credits to
+          <b>Aryan Agarwal, Sahas Patil, Aarav Arya, and Vikkranth Gamini</b>
+        </p>
+      </footer>
     </div>
-    {{ bootstrap.load_js() }}
-    {% endblock %}
-</body>
+    {{ bootstrap.load_js() }} {% endblock %}
+  </body>
 </html>
