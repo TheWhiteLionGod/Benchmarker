@@ -1,6 +1,7 @@
 from utils.html_utils import get_html
 import os
 import requests
+from typing import Dict, Any
 
 # Set up Ollama host
 os.environ["OLLAMA_HOST"] = "https://1e77-68-194-75-55.ngrok-free.app"
@@ -112,36 +113,68 @@ Keep the analysis concise and practical.
     return request_ollama(comparative_prompt, ollama_host)
 
 # Generating Ai Feedback Asyncronously so Page Loads Quicker without Feedback
-def generate_ai_feedback_async(args: dict):
-    result = args.get("result")
-    ai_feedback_status = args.get("ai_feedback_status")
+def generate_ai_feedback_async(user_id: str, user_data: Dict[str, Dict[str, Any]], user_ai_status: Dict[str, Dict[str, Any]]):
+    """
+    Generate AI feedback for a specific user asynchronously
+    
+    Args:
+        user_id: Unique identifier for the user
+        user_data: Dictionary containing all user data
+        user_ai_status: Dictionary containing all user AI status data
+    """
+    # Get user-specific data
+    result = user_data.get(user_id, {})
+    ai_feedback_status = user_ai_status.get(user_id, {})
+    
+    # Safety check - ensure user data exists
+    if not result or not ai_feedback_status:
+        print(f"Warning: No data found for user {user_id}")
+        return
     
     try:
         ai_feedback_status["status"] = "generating"
         ai_feedback_status["progress"] = 10
 
         # Get AI feedback for function 1
-        print("Getting AI feedback for Function 1...")
-        result["AI_Feedback1"] = get_ai_feedback(result["Program1Code"], "Function 1", result["Func1Times"], result["Func1Score"])
+        print(f"Getting AI feedback for Function 1 (user: {user_id})...")
+        result["AI_Feedback1"] = get_ai_feedback(
+            result["Program1Code"], 
+            "Function 1", 
+            result["Func1Times"], 
+            result["Func1Score"]
+        )
         result["AI_Feedback1"] = get_html(result.get("AI_Feedback1", "AI feedback not available"))
         ai_feedback_status["progress"] = 40
         
         # Get AI feedback for function 2
-        print("Getting AI feedback for Function 2...")
-        result["AI_Feedback2"] = get_ai_feedback(result["Program2Code"], "Function 2", result["Func2Times"], result["Func2Score"])
+        print(f"Getting AI feedback for Function 2 (user: {user_id})...")
+        result["AI_Feedback2"] = get_ai_feedback(
+            result["Program2Code"], 
+            "Function 2", 
+            result["Func2Times"], 
+            result["Func2Score"]
+        )
         result["AI_Feedback2"] = get_html(result["AI_Feedback2"])
         ai_feedback_status["progress"] = 70
         
         # Get comparative feedback
-        print("Getting comparative feedback...")
-        result["Comparative_Feedback"] = get_comparative_feedback(result["Program1Code"], result["Program2Code"], result["Func1Times"], result["Func2Times"], result["Func1Score"], result["Func2Score"])
+        print(f"Getting comparative feedback (user: {user_id})...")
+        result["Comparative_Feedback"] = get_comparative_feedback(
+            result["Program1Code"], 
+            result["Program2Code"], 
+            result["Func1Times"], 
+            result["Func2Times"], 
+            result["Func1Score"], 
+            result["Func2Score"]
+        )
         result["Comparative_Feedback"] = get_html(result["Comparative_Feedback"])
         
         ai_feedback_status["progress"] = 100
         ai_feedback_status["status"] = "complete"
-        print("AI feedback generation complete!")
+        print(f"AI feedback generation complete for user {user_id}!")
 
     except Exception as e:
+        print(f"Error generating AI feedback for user {user_id}: {str(e)}")
         ai_feedback_status["status"] = "error"
         ai_feedback_status["error"] = str(e)
         result["AI_Feedback1"] = f"Error generating feedback: {str(e)}"

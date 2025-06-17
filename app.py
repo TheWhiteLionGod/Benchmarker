@@ -10,6 +10,10 @@ from os import urandom
 from utils.benchmark import benchmark as bm
 from utils.html_utils import get_html
 from utils.ai_utils import generate_ai_feedback_async
+from utils.flask_utils import (
+    get_user_id, get_user_result, get_user_ai_status, cleanup_old_sessions,
+    user_has_complete_data, update_user_benchmark_results, user_data, user_ai_status
+)
 
 # Flask App Config
 app = Flask(__name__)
@@ -23,10 +27,6 @@ class CodeForm(FlaskForm):
     params = TextAreaField('Enter Parameters for your Functions', validators=[DataRequired()])
     submit = SubmitField("Evaluate")
 
-# Global Variable and Status Management
-result = {"Func1Times": [], "Func2Times": [], "Func1Score": 0, "Func2Score": 0}
-ai_feedback_status = {"status": "pending", "progress": 0}
-
 # Homepage Route
 @app.route("/")
 def homepage():
@@ -35,7 +35,8 @@ def homepage():
 # Benchmarking Route
 @app.route("/benchmark", methods=['GET', 'POST'])
 def benchmark():
-    global result, ai_feedback_status
+    user_id = get_user_id()
+    
     program = CodeForm()
     if program.validate_on_submit():
         program1 = program.program1.data
@@ -43,41 +44,27 @@ def benchmark():
         params = program.params.data
 
         # Updating Parameters
-        if params.strip() == "":
-            params = "params = [i for i in range(10)]"
-        else:
-            # If user didn't include 'params =' at the start, add it
-            params = params.strip()
-            if not params.startswith('params ='):
-                params = f"params = {params}"
+        if params.strip() == "": params = "[i for i in range(10)]"
+        else: params = params.strip()
 
         # Run benchmark first (fast operation)
-        print("Running benchmark...")
-        result = bm(program1, program2, params)
+        print(f"Running benchmark for user {user_id}...")
+        benchmark_result = bm(program1, program2, params)
         
-        if result == 'Invalid Parameters':
-            return render_template("crash.html", page="chart", reason="Parameters Entered are Invalid")
-        elif result == 'Function 1 Crashed':
-            return render_template("crash.html", page="chart", reason="Function 1 crashed while Testing")
-        elif result == 'Function 2 Crashed':
-            return render_template("crash.html", page="chart", reason="Function 2 crashed while Testing")
+        if benchmark_result == 'Invalid Parameters': return render_template("crash.html", page="chart", reason="Parameters Entered are Invalid")
+        elif benchmark_result == 'Function 1 Crashed': return render_template("crash.html", page="chart", reason="Function 1 crashed while Testing")
+        elif benchmark_result == 'Function 2 Crashed': return render_template("crash.html", page="chart", reason="Function 2 crashed while Testing")
         
-        # Store original code for display
-        result["Program1Code"] = program1
-        result["Program2Code"] = program2
-        
-        # Initialize AI feedback placeholders
-        result["AI_Feedback1"] = "Analyzing function performance..."
-        result["AI_Feedback2"] = "Analyzing function performance..."
-        result["Comparative_Feedback"] = "Generating comparative analysis..."
-        
-        # Reset AI feedback status
-        ai_feedback_status = {"status": "pending", "progress": 0}
+        # Update user data using utility function
+        update_user_benchmark_results(user_id, benchmark_result, program1, program2)
         
         # Start AI feedback generation in background thread
-        ai_thread = Thread(target=generate_ai_feedback_async, args=({"result": result, "ai_feedback_status": ai_feedback_status},))
+        ai_thread = Thread(target=generate_ai_feedback_async, args=(user_id, user_data, user_ai_status))
         ai_thread.daemon = True
         ai_thread.start()
+        
+        # Periodic cleanup
+        cleanup_old_sessions()
         
         return redirect('chart')
     return render_template("benchmark.html", page="benchmark", form=program)
@@ -85,25 +72,11 @@ def benchmark():
 # Chart Route
 @app.route("/chart")
 def chart():
-    global result
-    if result.get("Func1Times") is None:
-        return redirect('benchmark')
-    elif result.get("Func2Times") is None:
-        return redirect('benchmark')
-    elif result.get("Func1Score") is None:
-        return redirect('benchmark')
-    elif result.get("Func2Score") is None:
-        return redirect('benchmark')
-    elif result.get("AI_Feedback1") is None:
-        return redirect('benchmark')
-    elif result.get("AI_Feedback2") is None:
-        return redirect('benchmark')
-    elif result.get("Comparative_Feedback") is None:
-        return redirect('benchmark')
-    elif result.get("Program1Code") is None:
-        return redirect('benchmark')
-    elif result.get("Program2Code") is None:
-        return redirect('benchmark')
+    user_id = get_user_id()
+    
+    # Check if user has all required data
+    if not user_has_complete_data(user_id): return redirect('benchmark')
+    result = get_user_result(user_id)
     
     ai_feedback1_html = get_html(result.get("AI_Feedback1", "AI feedback not available"))
     ai_feedback2_html = get_html(result.get("AI_Feedback2", "AI feedback not available"))
@@ -127,7 +100,10 @@ def chart():
 @app.route("/api/feedback")
 def api_feedback():
     """API endpoint to get current AI feedback status and results"""
-    global result, ai_feedback_status
+    user_id = get_user_id()
+    result = get_user_result(user_id)
+    ai_feedback_status = get_user_ai_status(user_id)
+    
     return jsonify({
         "status": ai_feedback_status.get("status", "pending"),
         "progress": ai_feedback_status.get("progress", 0),
@@ -140,12 +116,14 @@ def api_feedback():
 @app.route("/api/feedback/refresh")
 def refresh_feedback():
     """API endpoint to manually refresh AI feedback"""
-    global ai_feedback_status
+    user_id = get_user_id()
+    ai_feedback_status = get_user_ai_status(user_id)
     
-    if ai_feedback_status.get("status") == "generating": return jsonify({"error": "AI feedback is already being generated"}), 400
+    if ai_feedback_status.get("status") == "generating": 
+        return jsonify({"error": "AI feedback is already being generated"}), 400
     
     # Start new AI feedback generation
-    ai_thread = Thread(target=generate_ai_feedback_async, args=({"result": result, "ai_feedback_status": ai_feedback_status},))
+    ai_thread = Thread(target=generate_ai_feedback_async, args=(user_id, user_data, user_ai_status))
     ai_thread.daemon = True
     ai_thread.start()
     
