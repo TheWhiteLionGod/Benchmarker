@@ -4,23 +4,17 @@ from flask_bootstrap import Bootstrap5
 from flask_wtf import FlaskForm
 from wtforms import SubmitField, TextAreaField
 from wtforms.validators import DataRequired
-from markupsafe import Markup
+from threading import Thread
+from os import urandom
 
-import markdown2
-import threading
-import os
-import requests
-import benchmark as bm
-import re
+from utils.benchmark import benchmark as bm
+from utils.html_utils import get_html
+from utils.ai_utils import generate_ai_feedback_async
 
 # Flask App Config
 app = Flask(__name__)
-SECRET_KEY = os.urandom(32)
-app.config['SECRET_KEY'] = SECRET_KEY
+app.config['SECRET_KEY'] = urandom(32)
 bootstrap = Bootstrap5(app)
-
-# Set up Ollama host
-os.environ["OLLAMA_HOST"] = "https://1e77-68-194-75-55.ngrok-free.app"
 
 # Code Form
 class CodeForm(FlaskForm):
@@ -32,197 +26,6 @@ class CodeForm(FlaskForm):
 # Global Variable and Status Management
 result = {"Func1Times": [], "Func2Times": [], "Func1Score": 0, "Func2Score": 0}
 ai_feedback_status = {"status": "pending", "progress": 0}
-
-# Stripping HTML of Whitespace
-def minify_html(html_str):
-    # Remove newlines and excessive spaces between tags
-    html_str = re.sub(r'>\s+<', '><', html_str)
-    # Optionally remove leading/trailing whitespace
-    html_str = html_str.strip()
-    return html_str
-
-# Getting AI Feedback of Function Code
-def get_ai_feedback(func_code, func_name, raw_times, score, ollama_host=None):
-    """
-    Get AI feedback on function performance using CodeGemma
-    
-    Args:
-        func_code: The function source code as string
-        func_name: Name of the function
-        raw_times: List of raw execution times
-        score: Calculated performance score
-        ollama_host: Ollama server URL
-    
-    Returns:
-        AI feedback as string
-    """
-    ollama_host = os.environ["OLLAMA_HOST"] if ollama_host is None else ollama_host
-
-    avg_time = sum(raw_times) / len(raw_times)
-    min_time = min(raw_times)
-    max_time = max(raw_times)
-    
-    # Create prompt for CodeGemma
-    prompt = f"""
-Analyze this Python function for performance and provide constructive feedback:
-
-Function: {func_name}
-```python
-{func_code}
-```
-
-Performance Metrics:
-- Performance Score: {score} (higher is better, based on -log10(avg_time) * 10)
-- Average execution time: {avg_time:.6f} seconds
-- Minimum execution time: {min_time:.6f} seconds  
-- Maximum execution time: {max_time:.6f} seconds
-- Total test runs: {len(raw_times)}
-
-Please provide:
-1. Performance assessment based on the score and execution times
-2. Potential bottlenecks or inefficiencies
-3. Optimization suggestions
-4. Code quality observations
-5. Consistency analysis (based on min/max variation)
-
-Keep the feedback concise and actionable.
-"""
-
-    try:
-        response = requests.post(
-            f"{ollama_host}/api/generate",
-            json={
-                "model": "codegemma:instruct",
-                "prompt": prompt,
-                "stream": False
-            },
-            timeout=60
-        )
-        
-        if response.status_code == 200:
-            return response.json()["response"]
-        else:
-            return f"Error: Failed to get response from Ollama (Status: {response.status_code})"    
-            
-    except requests.RequestException as e:
-        return f"Error connecting to Ollama: {str(e)}"
-
-
-# Comparative Feedback
-def get_comparative_feedback(func1_code, func2_code, func1_times, func2_times, func1_score, func2_score, ollama_host=None):
-    """
-    Get comparative AI feedback for two functions
-    """
-    ollama_host = os.environ["OLLAMA_HOST"] if ollama_host is None else ollama_host
-
-    avg1 = sum(func1_times) / len(func1_times)
-    avg2 = sum(func2_times) / len(func2_times)
-    
-    # Determine which function is better based on score (higher is better)
-    better_func = "Function 1" if func1_score > func2_score else "Function 2"
-    score_diff = abs(func1_score - func2_score)
-    time_diff = abs(avg1 - avg2)
-    
-    comparative_prompt = f"""
-Compare these two Python functions for performance:
-
-Function 1:
-```python
-{func1_code}
-```
-Performance Score: {func1_score} (higher is better)
-Average execution time: {avg1:.6f} seconds
-
-Function 2:
-```python
-{func2_code}
-```
-Performance Score: {func2_score} (higher is better)
-Average execution time: {avg2:.6f} seconds
-
-Analysis:
-- {better_func} performs better with a score difference of {score_diff:.3f} points
-- Time difference: {time_diff:.6f} seconds
-- Score calculation uses -log10(avg_time) * 10, so higher scores indicate faster execution
-
-Please provide:
-1. Which function performs better and why
-2. Performance difference analysis and significance
-3. Trade-offs between the approaches
-4. Recommendations for optimization
-5. When to use each approach
-
-Keep the analysis concise and practical.
-"""
-
-    try:
-        response = requests.post(
-            f"{ollama_host}/api/generate",
-            json={
-                "model": "codegemma:instruct",
-                "prompt": comparative_prompt,
-                "stream": False
-            },
-            timeout=60
-        )
-        
-        if response.status_code == 200:
-            return response.json()["response"]
-        else:
-            return "Error getting comparative feedback"
-            
-    except Exception as e:
-        return f"Error getting comparative feedback: {str(e)}"
-
-# Generating Ai Feedback Asyncronously so Page Loads Quicker without Feedback
-def generate_ai_feedback_async():
-    """
-    Generate AI feedback in background thread
-    """
-    global result, ai_feedback_status
-    
-    try:
-        ai_feedback_status["status"] = "generating"
-        ai_feedback_status["progress"] = 10
-
-        # Get AI feedback for function 1
-        print("Getting AI feedback for Function 1...")
-        result["AI_Feedback1"] = get_ai_feedback(
-            result["Program1Code"], "Function 1", result["Func1Times"], result["Func1Score"]
-        )
-        ai_feedback1_html = Markup(markdown2.markdown(result.get("AI_Feedback1", "AI feedback not available")))
-        result["AI_Feedback1"] = minify_html(ai_feedback1_html)
-        ai_feedback_status["progress"] = 40
-        
-        # Get AI feedback for function 2
-        print("Getting AI feedback for Function 2...")
-        result["AI_Feedback2"] = get_ai_feedback(
-            result["Program2Code"], "Function 2", result["Func2Times"], result["Func2Score"]
-        )
-        ai_feedback2_html = Markup(markdown2.markdown(result.get("AI_Feedback2", "AI feedback not available")))
-        result["AI_Feedback2"] = minify_html(ai_feedback2_html)
-        ai_feedback_status["progress"] = 70
-        
-        # Get comparative feedback
-        print("Getting comparative feedback...")
-        result["Comparative_Feedback"] = get_comparative_feedback(
-            result["Program1Code"], result["Program2Code"], 
-            result["Func1Times"], result["Func2Times"],
-            result["Func1Score"], result["Func2Score"]
-        )
-        comparative_feedback_html = Markup(markdown2.markdown(result.get("Comparative_Feedback", "Comparative feedback not available")))
-        result["Comparative_Feedback"] = minify_html(comparative_feedback_html)
-        ai_feedback_status["progress"] = 100
-        ai_feedback_status["status"] = "complete"
-        
-        print("AI feedback generation complete!")
-
-    except Exception as e:
-        ai_feedback_status["status"] = "error"
-        ai_feedback_status["error"] = str(e)
-        result["AI_Feedback1"] = f"Error generating feedback: {str(e)}"
-        result["AI_Feedback2"] = f"Error generating feedback: {str(e)}"
-        result["Comparative_Feedback"] = f"Error generating feedback: {str(e)}"
 
 # Homepage Route
 @app.route("/")
@@ -250,7 +53,7 @@ def benchmark():
 
         # Run benchmark first (fast operation)
         print("Running benchmark...")
-        result = bm.benchmark(program1, program2, params)
+        result = bm(program1, program2, params)
         
         if result == 'Invalid Parameters':
             return render_template("crash.html", page="chart", reason="Parameters Entered are Invalid")
@@ -272,7 +75,7 @@ def benchmark():
         ai_feedback_status = {"status": "pending", "progress": 0}
         
         # Start AI feedback generation in background thread
-        ai_thread = threading.Thread(target=generate_ai_feedback_async)
+        ai_thread = Thread(target=generate_ai_feedback_async, args=({"result": result, "ai_feedback_status": ai_feedback_status},))
         ai_thread.daemon = True
         ai_thread.start()
         
@@ -302,9 +105,9 @@ def chart():
     elif result.get("Program2Code") is None:
         return redirect('benchmark')
     
-    ai_feedback1_html = Markup(markdown2.markdown(result.get("AI_Feedback1", "AI feedback not available")))
-    ai_feedback2_html = Markup(markdown2.markdown(result.get("AI_Feedback2", "AI feedback not available")))
-    comparative_feedback_html = Markup(markdown2.markdown(result.get("Comparative_Feedback", "Comparative feedback not available")))
+    ai_feedback1_html = get_html(result.get("AI_Feedback1", "AI feedback not available"))
+    ai_feedback2_html = get_html(result.get("AI_Feedback2", "AI feedback not available"))
+    comparative_feedback_html = get_html(result.get("Comparative_Feedback", "Comparative feedback not available"))
     
     return render_template("chart.html",
                         labels=[f"Test {i}" for i in range(1, len(result["Func1Times"])+1)],
@@ -339,15 +142,14 @@ def refresh_feedback():
     """API endpoint to manually refresh AI feedback"""
     global ai_feedback_status
     
-    if ai_feedback_status.get("status") == "generating":
-        return jsonify({"error": "AI feedback is already being generated"}), 400
+    if ai_feedback_status.get("status") == "generating": return jsonify({"error": "AI feedback is already being generated"}), 400
     
     # Start new AI feedback generation
-    ai_thread = threading.Thread(target=generate_ai_feedback_async)
+    ai_thread = Thread(target=generate_ai_feedback_async, args=({"result": result, "ai_feedback_status": ai_feedback_status},))
     ai_thread.daemon = True
     ai_thread.start()
     
     return jsonify({"message": "AI feedback refresh started"})
 
 if __name__ == '__main__':
-    app.run(debug=False, port=5000)
+    app.run(debug=True, port=5000)
