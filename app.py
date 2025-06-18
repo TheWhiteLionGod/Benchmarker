@@ -7,12 +7,13 @@ from wtforms.validators import DataRequired
 from threading import Thread
 from os import urandom
 
-from utils.benchmark import benchmark as bm
+from utils.benchmark import benchmark_async
 from utils.html_utils import get_html
 from utils.ai_utils import generate_ai_feedback_async
 from utils.flask_utils import (
     get_user_id, get_user_result, get_user_ai_status, cleanup_old_sessions,
-    user_has_complete_data, update_user_benchmark_results, user_data, user_ai_status
+    user_has_complete_data, update_user_benchmark_results, user_data, user_ai_status,
+    get_user_benchmark_status, user_benchmark_status, update_user_benchmark_status
 )
 
 # Flask App Config
@@ -47,35 +48,40 @@ def benchmark():
         if params.strip() == "": params = "[i for i in range(10)]"
         else: params = params.strip()
 
-        # Run benchmark first (fast operation)
-        print(f"Running benchmark for user {user_id}...")
-        benchmark_result = bm(program1, program2, params)
+        # Initialize benchmark status
+        update_user_benchmark_status(user_id, "pending", 0, None, program1, program2, params)
         
-        if benchmark_result == 'Invalid Parameters': return render_template("crash.html", page="chart", reason="Parameters Entered are Invalid")
-        elif benchmark_result == 'Function 1 Crashed': return render_template("crash.html", page="chart", reason="Function 1 crashed while Testing")
-        elif benchmark_result == 'Function 2 Crashed': return render_template("crash.html", page="chart", reason="Function 2 crashed while Testing")
-        
-        # Update user data using utility function
-        update_user_benchmark_results(user_id, benchmark_result, program1, program2)
-        
-        # Start AI feedback generation in background thread
-        ai_thread = Thread(target=generate_ai_feedback_async, args=(user_id, user_data, user_ai_status))
-        ai_thread.daemon = True
-        ai_thread.start()
+        # Start benchmark in background thread
+        benchmark_thread = Thread(target=benchmark_async, args=(user_id, program1, program2, params, user_data, user_benchmark_status))
+        benchmark_thread.daemon = True
+        benchmark_thread.start()
         
         # Periodic cleanup
         cleanup_old_sessions()
         
-        return redirect('chart')
+        return redirect('benchmark_status')
     return render_template("benchmark.html", page="benchmark", form=program)
 
-# Chart Route
+# New benchmark status page
+@app.route("/benchmark_status")
+def benchmark_status():
+    user_id = get_user_id()
+    benchmark_status = get_user_benchmark_status(user_id)
+    
+    # If no benchmark in progress, redirect to benchmark page
+    if not benchmark_status or benchmark_status.get("status") == "not_started":
+        return redirect('benchmark')
+    
+    return render_template("benchmark_status.html", page="benchmark")
+
+# Chart Route (modified to handle async results)
 @app.route("/chart")
 def chart():
     user_id = get_user_id()
     
     # Check if user has all required data
     if not user_has_complete_data(user_id): return redirect('benchmark')
+    
     result = get_user_result(user_id)
     
     ai_feedback1_html = get_html(result.get("AI_Feedback1", "AI feedback not available"))
@@ -96,7 +102,49 @@ def chart():
                         program2_code=result.get("Program2Code", "")
                         )
 
-# Api Routes
+# API Routes for benchmark status
+@app.route("/api/benchmark")
+def api_benchmark():
+    """API endpoint to get current benchmark status and results"""
+    user_id = get_user_id()
+    benchmark_status = get_user_benchmark_status(user_id)
+    
+    return jsonify({
+        "status": benchmark_status.get("status", "not_started"),
+        "progress": benchmark_status.get("progress", 0),
+        "error": benchmark_status.get("error", None),
+        "current_test": benchmark_status.get("current_test", 0),
+        "total_tests": benchmark_status.get("total_tests", 0),
+        "message": benchmark_status.get("message", "")
+    })
+
+@app.route("/api/benchmark/restart")
+def restart_benchmark():
+    """API endpoint to restart benchmark"""
+    user_id = get_user_id()
+    benchmark_status = get_user_benchmark_status(user_id)
+    
+    if benchmark_status.get("status") == "running": 
+        return jsonify({"error": "Benchmark is already running"}), 400
+    
+    # Get stored code and params
+    program1 = benchmark_status.get("program1", "")
+    program2 = benchmark_status.get("program2", "")
+    params = benchmark_status.get("params", "")
+    
+    if not all([program1, program2, params]):
+        return jsonify({"error": "No previous benchmark data found"}), 400
+    
+    # Reset status and start new benchmark
+    update_user_benchmark_status(user_id, "pending", 0, None, program1, program2, params)
+    
+    benchmark_thread = Thread(target=benchmark_async, args=(user_id, program1, program2, params, user_data, user_benchmark_status))
+    benchmark_thread.daemon = True
+    benchmark_thread.start()
+    
+    return jsonify({"message": "Benchmark restarted"})
+
+# Existing AI feedback API routes
 @app.route("/api/feedback")
 def api_feedback():
     """API endpoint to get current AI feedback status and results"""
@@ -130,4 +178,4 @@ def refresh_feedback():
     return jsonify({"message": "AI feedback refresh started"})
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, host='0.0.0.0')
+    app.run(debug=True, port=5000, host="0.0.0.0")

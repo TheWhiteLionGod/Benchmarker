@@ -5,6 +5,8 @@ import uuid
 # In-memory storage for user sessions (in production, consider using Redis or database)
 user_data: Dict[str, Dict[str, Any]] = {}
 user_ai_status: Dict[str, Dict[str, Any]] = {}
+user_benchmark_status: Dict[str, Dict[str, Any]] = {}
+user_sessions: Dict[str, float] = {}  # Track session timestamps
 
 def get_user_id() -> str:
     """
@@ -75,9 +77,11 @@ def cleanup_old_sessions(max_sessions: int = 100, cleanup_count: int = 50) -> No
     if len(user_data) > max_sessions:
         # Remove oldest sessions (simple FIFO approach)
         old_keys = list(user_data.keys())[:cleanup_count]
-        for key in old_keys:
-            user_data.pop(key, None)
-            user_ai_status.pop(key, None)
+        for user_id in old_keys:
+            if user_id in user_data: del user_data[user_id]
+            if user_id in user_ai_status: del user_ai_status[user_id]
+            if user_id in user_benchmark_status: del user_benchmark_status[user_id]
+            if user_id in user_sessions: del user_sessions[user_id]
         print(f"Cleaned up {len(old_keys)} old sessions")
 
 def get_session_stats() -> Dict[str, int]:
@@ -170,3 +174,72 @@ def update_user_benchmark_results(user_id: str, benchmark_result: Dict[str, Any]
     
     # Reset AI feedback status
     reset_user_ai_status(user_id)
+
+def get_user_benchmark_status(user_id: str) -> Dict[str, Any]:
+    """Get benchmark status for a specific user"""
+    if user_id not in user_benchmark_status:
+        user_benchmark_status[user_id] = {
+            "status": "not_started",
+            "progress": 0,
+            "error": None,
+            "current_test": 0,
+            "total_tests": 0,
+            "message": "",
+            "program1": "",
+            "program2": "",
+            "params": ""
+        }
+    return user_benchmark_status[user_id]
+
+def update_user_benchmark_status(user_id: str, status: str, progress: int, error: str = None, 
+                                program1: str = "", program2: str = "", params: str = ""):
+    """Update benchmark status for a specific user"""
+    if user_id not in user_benchmark_status:
+        user_benchmark_status[user_id] = {}
+    
+    user_benchmark_status[user_id].update({
+        "status": status,
+        "progress": progress,
+        "error": error,
+        "current_test": 0,
+        "total_tests": 0,
+        "message": "",
+        "program1": program1,
+        "program2": program2,
+        "params": params
+    })
+
+def update_user_benchmark_results(user_id: str, benchmark_result: dict, program1: str, program2: str):
+    """Update user benchmark results (legacy function for backwards compatibility)"""
+    if user_id not in user_data:
+        user_data[user_id] = {}
+    
+    user_data[user_id].update({
+        "Func1Times": benchmark_result["Func1Times"],
+        "Func2Times": benchmark_result["Func2Times"],
+        "Func1Score": benchmark_result["Func1Score"],
+        "Func2Score": benchmark_result["Func2Score"],
+        "Program1Code": program1,
+        "Program2Code": program2,
+        # Initialize AI feedback placeholders
+        "AI_Feedback1": "Analyzing function performance...",
+        "AI_Feedback2": "Analyzing function performance...",
+        "Comparative_Feedback": "Generating comparative analysis..."
+    })
+    
+    # Initialize AI status for this user
+    if user_id not in user_ai_status:
+        user_ai_status[user_id] = {
+            "status": "pending",
+            "progress": 0,
+            "error": None
+        }
+
+def get_user_session_info() -> Dict[str, Any]:
+    """Get information about current user sessions (for debugging)"""
+    return {
+        "total_users": len(user_sessions),
+        "users_with_data": len(user_data),
+        "users_with_ai_status": len(user_ai_status),
+        "users_with_benchmark_status": len(user_benchmark_status)
+    }
