@@ -3,9 +3,6 @@ import os
 import requests
 from typing import Dict, Any
 
-# Set up Ollama host
-os.environ["OLLAMA_HOST"] = "https://1e77-68-194-75-55.ngrok-free.app"
-
 # Function to request Ollama for AI feedback
 def request_ollama(prompt: str, ollama_host: str) -> str:
     try:
@@ -22,14 +19,14 @@ def request_ollama(prompt: str, ollama_host: str) -> str:
         if response.status_code == 200:
             return response.json()["response"]
         else:
-            return f"Error: Failed to get response from Ollama (Status: {response.status_code})"    
+            return f"Error: Failed to get response from Ollama (Status: {response.status_code})"
             
     except requests.RequestException as e:
         return f"Error connecting to Ollama: {str(e)}"
 
 # Getting AI Feedback of Function Code
-def get_ai_feedback(func_code: str, func_name: str, raw_times: list[float], score: float, ollama_host: str | None=None) -> str:
-    ollama_host = os.environ["OLLAMA_HOST"] if ollama_host is None else ollama_host
+def get_ai_feedback(func_code: str, func_name: str, raw_times: list[float], score: float) -> str:
+    ollama_host = os.environ.get("OLLAMA_HOST")
 
     avg_time = sum(raw_times) / len(raw_times)
     min_time = min(raw_times)
@@ -66,8 +63,8 @@ Keep the feedback concise and actionable.
 
 
 # Comparative Feedback
-def get_comparative_feedback(func1_code: str, func2_code: str, func1_times: list[float], func2_times: list[float], func1_score: float, func2_score: float, ollama_host: str | None=None):
-    ollama_host = os.environ["OLLAMA_HOST"] if ollama_host is None else ollama_host
+def get_comparative_feedback(func1_code: str, func2_code: str, func1_times: list[float], func2_times: list[float], func1_score: float, func2_score: float):
+    ollama_host = os.environ.get("OLLAMA_HOST")
 
     avg1 = sum(func1_times) / len(func1_times)
     avg2 = sum(func2_times) / len(func2_times)
