@@ -9,13 +9,39 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     restart: unless-stopped
+    # Performance optimizations
+    environment:
+      # Enable GPU if available (comment out if CPU-only)
+      # - NVIDIA_VISIBLE_DEVICES=all
+      # - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      
+      # CPU optimizations
+      - OLLAMA_NUM_PARALLEL=3  # Allow 2 concurrent requests
+      - OLLAMA_MAX_LOADED_MODELS=1  # Keep up to 2 models in memory
+      - OLLAMA_FLASH_ATTENTION=1  # Enable flash attention for faster processing
+      
+    # Resource limits to prevent OOM
+    deploy:
+      resources:
+        limits:
+          memory: 8G  # Adjust based on your system
+        reservations:
+          memory: 4G
+    
+    # Shared memory for better performance
+    shm_size: 2gb
+    
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s  # Increased for model loading
+    
+    # Uncomment for GPU support
+    # runtime: nvidia
 
-  # Service to automatically pull required models
+  # Service to automatically pull required models with optimization
   ollama-init:
     image: curlimages/curl:latest
     container_name: ollama-init
@@ -28,7 +54,6 @@ services:
       - OLLAMA_HOST=http://ollama:11434
     restart: "no"
 
-
   flask-app:
     build:
       context: .
@@ -40,7 +65,19 @@ services:
       - ollama
     environment:
       - OLLAMA_HOST=http://ollama:11434
+      # Flask optimizations
+      - FLASK_ENV=production
+      - PYTHONUNBUFFERED=1
     restart: unless-stopped
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/"]
       interval: 30s
@@ -50,7 +87,9 @@ services:
 
 volumes:
   ollama_data:
+    driver: local
 
 networks:
   default:
     name: benchmark-network
+    driver: bridge
